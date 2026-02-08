@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>微信公众号文章聚合</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <h1 class="logo">📰 微信文章聚合</h1>
+        <div class="header-actions">
+          <div class="search-box">
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="搜索文章标题或内容..."
+              class="search-input"
+            >
+            <button id="searchBtn" class="search-btn">🔍</button>
+          </div>
+          <button id="refreshBtn" class="refresh-btn">刷新</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="main">
+    <div class="container">
+      <!-- 统计信息 -->
+      <div class="stats" id="stats">
+        <div class="stat-card">
+          <div class="stat-label">文章总数</div>
+          <div class="stat-value" id="totalArticles">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">最后更新</div>
+          <div class="stat-value" id="lastUpdate">-</div>
+        </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <div id="loading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>加载中...</p>
+      </div>
+
+      <!-- 错误提示 -->
+      <div id="error" class="error" style="display: none;"></div>
+
+      <!-- 文章列表 -->
+      <div class="articles-grid" id="articlesGrid"></div>
+
+      <!-- 分页 -->
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </main>
+
+  <!-- 底部 -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2026 微信公众号文章聚合系统 | 每小时自动更新</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body
