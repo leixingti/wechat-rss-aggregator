@@ -16,27 +16,27 @@ const WE_MP_RSS_BASE_URL = 'https://we-mp-rss-production-fcb0.up.railway.app';
 // ⭐ RSS源列表 - 已配置您的 we-mp-rss 服务
 const RSS_FEEDS = [
   {
-    name: '公众号1',
+    name: 'WAIC',
     url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3201788143.rss',
   },
   {
-    name: '公众号2',
+    name: '机器之心',
     url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3098132220.rss',
   },
   {
-    name: '公众号3',
+    name: '量子位',
     url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3271041950.rss',
   },
   {
-    name: '公众号4',
+    name: 'AI前线',
     url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3236757533.rss',
   },
   {
-    name: '公众号5',
+    name: '新智元',
     url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3073282833.rss',
   },
   {
-    name: '公众号6',
+    name: '智能涌现',
     url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3582835969.rss',
   },
 ];
