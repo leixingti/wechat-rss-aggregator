@@ -166,6 +166,18 @@ app.post('/api/admin/change-password', authMiddleware, (req, res) => {
   res.json({ success });
 });
 
+// 更新所有文章的来源名称
+app.post('/api/admin/update-sources', authMiddleware, async (req, res) => {
+  try {
+    const { updateArticleSources } = require('./update-sources');
+    await updateArticleSources();
+    res.json({ success: true, message: '文章来源名称已更新' });
+  } catch (error) {
+    console.error('更新来源失败:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 服务前端页面
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
