@@ -124,6 +124,7 @@
           <h1 class="logo">🔧 RSS源管理后台</h1>
           <div style="display:flex;gap:1rem">
             <button class="btn btn-success" onclick="showAddModal()">+ 添加RSS源</button>
+            <button class="btn" style="background:#f59e0b;color:white" onclick="showPasswordModal()">修改密码</button>
             <button class="btn btn-primary" onclick="window.location.href='/'">返回首页</button>
             <button class="btn btn-danger" onclick="logout()">退出登录</button>
           </div>
@@ -152,6 +153,25 @@
       <div style="display:flex;gap:1rem;margin-top:1.5rem">
         <button class="btn btn-primary" onclick="saveFeed()">保存</button>
         <button class="btn" style="background:#6b7280;color:white" onclick="closeModal()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改密码弹窗 -->
+  <div id="passwordModal" class="modal">
+    <div class="modal-content">
+      <h3>修改登录密码</h3>
+      <div class="form-group">
+        <label>新密码</label>
+        <input type="password" id="newPassword" placeholder="至少6位字符">
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input type="password" id="confirmPassword" placeholder="再次输入新密码">
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem">
+        <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
+        <button class="btn" style="background:#6b7280;color:white" onclick="closePasswordModal()">取消</button>
       </div>
     </div>
   </div>
@@ -314,6 +334,53 @@
     // 关闭弹窗
     function closeModal() {
       document.getElementById('addModal').classList.remove('active');
+    }
+
+    // 显示修改密码弹窗
+    function showPasswordModal() {
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+      document.getElementById('passwordModal').classList.add('active');
+    }
+
+    // 关闭修改密码弹窗
+    function closePasswordModal() {
+      document.getElementById('passwordModal').classList.remove('active');
+    }
+
+    // 修改密码
+    async function changePassword() {
+      const newPassword = document.getElementById('newPassword').value.trim();
+      const confirmPassword = document.getElementById('confirmPassword').value.trim();
+      
+      if (!newPassword || newPassword.length < 6) {
+        alert('密码至少需要6位字符');
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        alert('两次输入的密码不一致');
+        return;
+      }
+      
+      const res = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': currentPassword
+        },
+        body: JSON.stringify({newPassword})
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        currentPassword = newPassword; // 更新当前密码
+        closePasswordModal();
+        alert('密码修改成功！请记住新密码');
+      } else {
+        alert('密码修改失败：' + (data.error || '未知错误'));
+      }
     }
   </script>
 </body>
