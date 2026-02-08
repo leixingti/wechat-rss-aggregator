@@ -1,8 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
-// RSS配置文件路径
-const CONFIG_FILE = path.join(__dirname, 'rss-config.json');
+// RSS配置文件路径 - 使用持久化存储
+// 如果 /app/data 目录存在（Railway Volume），使用它
+// 否则使用当前目录（本地开发）
+const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : __dirname;
+const CONFIG_FILE = path.join(DATA_DIR, 'rss-config.json');
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -46,43 +49,43 @@ const DEFAULT_CONFIG = {
     },
     {
       id: '7',
-      name: 'AI公众号7',
+      name: 'AI信息Gap',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3903631794.rss',
       enabled: true
     },
     {
       id: '8',
-      name: 'AI公众号8',
+      name: 'APPSO',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_2392024520.rss',
       enabled: true
     },
     {
       id: '9',
-      name: 'AI公众号9',
+      name: 'AI特大号',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3933528830.rss',
       enabled: true
     },
     {
       id: '10',
-      name: 'AI公众号10',
+      name: 'AI前线',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3554086560.rss',
       enabled: true
     },
     {
       id: '11',
-      name: 'AI公众号11',
+      name: '硅星人Pro',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3926568365.rss',
       enabled: true
     },
     {
       id: '12',
-      name: 'AI公众号12',
+      name: '甲子光年',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3599245772.rss',
       enabled: true
     },
     {
       id: '13',
-      name: 'AI公众号13',
+      name: '极客公园',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_1304308441.rss',
       enabled: true
     },
