@@ -21,6 +21,30 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
+    /* 后台Tab样式 */
+    .admin-tab-btn {
+      padding: 1rem 1.5rem;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .admin-tab-btn:hover {
+      color: #2563eb;
+      background: #f9fafb;
+    }
+    
+    .admin-tab-btn.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+      background: white;
+    }
+    
     .feed-list {
       margin-top: 2rem;
     }
@@ -134,7 +158,22 @@
     </header>
 
     <div class="admin-container">
-      <h2>当前RSS源列表</h2>
+      <!-- 分类Tab导航 -->
+      <div style="margin-bottom:2rem;border-bottom:2px solid #e5e7eb;">
+        <div style="display:flex;gap:0;">
+          <button class="admin-tab-btn active" data-category="all" onclick="switchAdminTab('all')">
+            📋 全部RSS源 (<span id="countAll">0</span>)
+          </button>
+          <button class="admin-tab-btn" data-category="ai_news" onclick="switchAdminTab('ai_news')">
+            🤖 AI行业新闻 (<span id="countAI">0</span>)
+          </button>
+          <button class="admin-tab-btn" data-category="it_news" onclick="switchAdminTab('it_news')">
+            💻 IT行业动态 (<span id="countIT">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <h2 id="currentTabTitle">全部RSS源列表</h2>
       <div id="feedList" class="feed-list"></div>
     </div>
   </div>
@@ -150,6 +189,13 @@
       <div class="form-group">
         <label>RSS链接</label>
         <input type="url" id="feedUrl" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>分类</label>
+        <select id="feedCategory" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
+          <option value="ai_news">AI行业新闻</option>
+          <option value="it_news">IT行业动态</option>
+        </select>
       </div>
       <div style="display:flex;gap:1rem;margin-top:1.5rem">
         <button class="btn btn-primary" onclick="saveFeed()">保存</button>
@@ -180,6 +226,96 @@
   <script>
     let currentPassword = '';
     let editingFeedId = null;
+    let currentCategory = 'all'; // 当前选中的分类
+    let allFeeds = []; // 存储所有RSS源数据
+
+    // Tab切换
+    function switchAdminTab(category) {
+      currentCategory = category;
+      
+      // 更新Tab按钮状态
+      document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        if (btn.dataset.category === category) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // 更新标题
+      const titles = {
+        'all': '全部RSS源列表',
+        'ai_news': 'AI行业新闻 RSS源列表',
+        'it_news': 'IT行业动态 RSS源列表'
+      };
+      document.getElementById('currentTabTitle').textContent = titles[category];
+      
+      // 重新渲染列表
+      renderFeedList();
+    }
+    
+    // 渲染RSS源列表（根据当前分类筛选）
+    function renderFeedList() {
+      const categoryNames = {
+        'ai_news': 'AI行业新闻',
+        'it_news': 'IT行业动态'
+      };
+      
+      const categoryColors = {
+        'ai_news': '#3b82f6',
+        'it_news': '#10b981'
+      };
+      
+      // 筛选数据
+      let filteredFeeds = allFeeds;
+      if (currentCategory !== 'all') {
+        filteredFeeds = allFeeds.filter(feed => feed.category === currentCategory);
+      }
+      
+      const html = filteredFeeds.map(feed => `
+        <div class="feed-item">
+          <div class="feed-info">
+            <h3>${feed.name}</h3>
+            <p style="font-size:0.875rem;color:#6b7280;margin-top:0.25rem">${feed.url}</p>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+              <span style="font-size:0.75rem;background:${categoryColors[feed.category || 'ai_news']};color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;">
+                🏷️ ${categoryNames[feed.category || 'ai_news']}
+              </span>
+              <span style="font-size:0.75rem;color:${feed.enabled?'#10b981':'#ef4444'}">
+                ${feed.enabled ? '✅ 已启用' : '❌ 已禁用'}
+              </span>
+            </div>
+          </div>
+          <div class="feed-actions">
+            <button class="btn btn-primary" onclick="editFeed('${feed.id}')">编辑</button>
+            <button class="btn ${feed.enabled?'':'btn-success'}" onclick="toggleFeed('${feed.id}', ${!feed.enabled})">
+              ${feed.enabled ? '禁用' : '启用'}
+            </button>
+            <button class="btn btn-danger" onclick="deleteFeed('${feed.id}')">删除</button>
+          </div>
+        </div>
+      `).join('');
+      
+      document.getElementById('feedList').innerHTML = html || `
+        <p style="text-align:center;color:#6b7280;padding:3rem;">
+          ${currentCategory === 'all' ? '暂无RSS源' : `暂无${categoryNames[currentCategory]}RSS源`}
+        </p>
+      `;
+      
+      // 更新计数
+      updateCounts();
+    }
+    
+    // 更新各分类的计数
+    function updateCounts() {
+      const countAll = allFeeds.length;
+      const countAI = allFeeds.filter(f => f.category === 'ai_news').length;
+      const countIT = allFeeds.filter(f => f.category === 'it_news').length;
+      
+      document.getElementById('countAll').textContent = countAll;
+      document.getElementById('countAI').textContent = countAI;
+      document.getElementById('countIT').textContent = countIT;
+    }
 
     // 登录
     async function login() {
@@ -215,26 +351,11 @@
       });
       const data = await res.json();
       
-      const html = data.feeds.map(feed => `
-        <div class="feed-item">
-          <div class="feed-info">
-            <h3>${feed.name}</h3>
-            <p style="font-size:0.875rem;color:#6b7280;margin-top:0.25rem">${feed.url}</p>
-            <span style="font-size:0.75rem;color:${feed.enabled?'#10b981':'#ef4444'}">
-              ${feed.enabled ? '✅ 已启用' : '❌ 已禁用'}
-            </span>
-          </div>
-          <div class="feed-actions">
-            <button class="btn btn-primary" onclick="editFeed('${feed.id}')">编辑</button>
-            <button class="btn ${feed.enabled?'':'btn-success'}" onclick="toggleFeed('${feed.id}', ${!feed.enabled})">
-              ${feed.enabled ? '禁用' : '启用'}
-            </button>
-            <button class="btn btn-danger" onclick="deleteFeed('${feed.id}')">删除</button>
-          </div>
-        </div>
-      `).join('');
+      // 保存所有数据
+      allFeeds = data.feeds;
       
-      document.getElementById('feedList').innerHTML = html || '<p>暂无RSS源</p>';
+      // 渲染列表
+      renderFeedList();
     }
 
     // 显示添加弹窗
@@ -243,6 +364,7 @@
       document.getElementById('modalTitle').textContent = '添加RSS源';
       document.getElementById('feedName').value = '';
       document.getElementById('feedUrl').value = '';
+      document.getElementById('feedCategory').value = 'ai_news';
       document.getElementById('addModal').classList.add('active');
     }
 
@@ -259,6 +381,7 @@
         document.getElementById('modalTitle').textContent = '编辑RSS源';
         document.getElementById('feedName').value = feed.name;
         document.getElementById('feedUrl').value = feed.url;
+        document.getElementById('feedCategory').value = feed.category || 'ai_news';
         document.getElementById('addModal').classList.add('active');
       }
     }
@@ -267,6 +390,7 @@
     async function saveFeed() {
       const name = document.getElementById('feedName').value.trim();
       const url = document.getElementById('feedUrl').value.trim();
+      const category = document.getElementById('feedCategory').value;
       
       if (!name || !url) {
         alert('请填写完整信息');
@@ -285,7 +409,7 @@
           'Content-Type': 'application/json',
           'X-Admin-Password': currentPassword
         },
-        body: JSON.stringify({name, url})
+        body: JSON.stringify({name, url, category})
       });
       
       const data = await res.json();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>微信公众号文章聚合</title>
+  <title>AI行业动态</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,71 +13,92 @@
       <div class="header-content">
         <h1 class="logo">AI行业动态</h1>
         <div class="header-actions">
-          <div class="search-box">
-            <input 
-              type="text" 
-              id="searchInput" 
-              placeholder="搜索文章标题或内容..."
-              class="search-input"
-            >
-            <button id="searchBtn" class="search-btn">🔍</button>
-          </div>
-          <button id="refreshBtn" class="refresh-btn">刷新</button>
+          <input type="text" id="searchInput" placeholder="搜索文章标题或内容..." class="search-input">
+          <button id="searchBtn" class="btn btn-primary">🔍 搜索</button>
+          <button id="refreshBtn" class="btn btn-success">🔄 刷新</button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- 主内容区 -->
-  <main class="main">
+  <!-- 统计卡片 -->
+  <section class="stats-section">
     <div class="container">
-      <!-- 统计信息 -->
-      <div class="stats" id="stats">
+      <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">文章总数</div>
-          <div class="stat-value" id="totalArticles">-</div>
+          <div class="stat-value" id="totalArticles">0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">今天</div>
-          <div class="stat-value" id="todayCount">-</div>
+          <div class="stat-value" id="todayCount">0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">昨天</div>
-          <div class="stat-value" id="yesterdayCount">-</div>
+          <div class="stat-value" id="yesterdayCount">0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">本周</div>
-          <div class="stat-value" id="weekCount">-</div>
+          <div class="stat-value" id="weekCount">0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">更早</div>
-          <div class="stat-value" id="olderCount">-</div>
+          <div class="stat-value" id="olderCount">0</div>
         </div>
       </div>
+    </div>
+  </section>
 
+  <!-- 三板块Tab导航 -->
+  <section class="tabs-section">
+    <div class="container">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="ai_news">
+          <span class="tab-icon">🤖</span>
+          <span class="tab-text">AI行业新闻</span>
+        </button>
+        <button class="tab-btn" data-tab="it_news">
+          <span class="tab-icon">💻</span>
+          <span class="tab-text">IT行业动态</span>
+        </button>
+        <button class="tab-btn" data-tab="conferences">
+          <span class="tab-icon">📅</span>
+          <span class="tab-text">AI行业会议</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 主内容区 -->
+  <main class="main-content">
+    <div class="container">
       <!-- 加载状态 -->
       <div id="loading" class="loading" style="display: none;">
         <div class="spinner"></div>
-        <p>加载中...</p>
+        <p>正在加载...</p>
       </div>
 
       <!-- 错误提示 -->
       <div id="error" class="error" style="display: none;"></div>
 
-      <!-- 文章列表 -->
-      <div class="articles-grid" id="articlesGrid"></div>
+      <!-- AI行业新闻板块 -->
+      <div id="ai-news-panel" class="tab-panel active">
+        <div id="articlesGrid" class="articles-grid"></div>
+        <div id="pagination" class="pagination"></div>
+      </div>
 
-      <!-- 分页 -->
-      <div class="pagination" id="pagination"></div>
+      <!-- IT行业动态板块 -->
+      <div id="it-news-panel" class="tab-panel">
+        <div id="itArticlesGrid" class="articles-grid"></div>
+        <div id="itPagination" class="pagination"></div>
+      </div>
+
+      <!-- AI行业会议板块 -->
+      <div id="conferences-panel" class="tab-panel">
+        <div id="conferencesList" class="conferences-list"></div>
+      </div>
     </div>
   </main>
-
-  <!-- 底部 -->
-  <footer class="footer">
-    <div class="container">
-      <p></p>
-    </div>
-  </footer>
 
   <script src="app.js"></script>
 </body>
