@@ -107,20 +107,27 @@ async function loadArticlesByCategory(category) {
   hideError();
 
   try {
-    const params = new URLSearchParams({
-      page: 1,
-      limit: 1000,
-      search: currentSearch
-    });
-
-    const response = await fetch(`/api/articles/by-category?category=${category}&${params}`);
+    // 使用原有的API，加载所有文章
+    const response = await fetch(`/api/articles?page=1&limit=1000`);
     
     if (!response.ok) {
       throw new Error('加载失败');
     }
 
     const data = await response.json();
-    allArticles = data.articles;
+    
+    // 在前端按分类筛选
+    if (category === 'ai_news' || category === 'it_news') {
+      allArticles = data.articles.filter(article => {
+        // 如果文章有category字段，按category筛选
+        // 如果没有category字段，默认归为ai_news
+        const articleCategory = article.category || 'ai_news';
+        return articleCategory === category;
+      });
+    } else {
+      // conferences板块不需要筛选
+      allArticles = data.articles;
+    }
     
     const targetGrid = category === 'ai_news' ? articlesGrid : itArticlesGrid;
     const targetPagination = category === 'ai_news' ? pagination : itPagination;
