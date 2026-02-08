@@ -4,7 +4,8 @@
 
 let currentPage = 1;
 let currentSearch = '';
-const ARTICLES_PER_PAGE = 12;
+const ARTICLES_PER_PAGE = 100; // 每页100条
+let allArticles = [];
 
 // ========================================
 // DOM 元素
@@ -28,27 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
 });
 
-// ========================================
-// 事件监听
-// ========================================
-
 function setupEventListeners() {
-  // 搜索功能
   searchBtn.addEventListener('click', handleSearch);
   searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   });
-
-  // 刷新按钮
   refreshBtn.addEventListener('click', handleRefresh);
 }
 
+// ========================================
+// 事件处理
+// ========================================
+
 function handleSearch() {
-  currentSearch = searchInput.value.trim();
-  currentPage = 1;
-  loadArticles();
+  const search = searchInput.value.trim();
+  if (search !== currentSearch) {
+    currentSearch = search;
+    currentPage = 1;
+    loadArticles();
+  }
 }
 
 async function handleRefresh() {
@@ -64,7 +63,7 @@ async function handleRefresh() {
       loadArticles();
       loadStats();
     } else {
-      showNotification('❌ 刷新失败: ' + data.error, 'error');
+      showNotification('❌ 刷新失败', 'error');
     }
   } catch (err) {
     showNotification('❌ 网络错误', 'error');
@@ -83,10 +82,10 @@ async function loadArticles() {
   hideError();
 
   try {
-    // 加载足够多的文章以显示所有分类
+    // 加载所有文章用于分组显示
     const params = new URLSearchParams({
       page: 1,
-      limit: 200, // 增加限制以显示更多文章
+      limit: 1000, // 加载足够多的文章
       search: currentSearch
     });
 
@@ -97,9 +96,9 @@ async function loadArticles() {
     }
 
     const data = await response.json();
-    displayArticles(data.articles);
-    // 暂时移除分页，因为我们按日期分类显示
-    // displayPagination(data.pagination);
+    allArticles = data.articles;
+    
+    displayArticlesGrouped(allArticles);
   } catch (err) {
     showError('加载文章失败，请稍后重试');
     console.error('加载错误:', err);
@@ -109,56 +108,10 @@ async function loadArticles() {
 }
 
 // ========================================
-// 加载统计信息
+// 显示文章列表（按日期分组+分页）
 // ========================================
 
-async function loadStats() {
-  try {
-    const response = await fetch('/api/articles?limit=1000'); // 获取所有文章用于统计
-    const data = await response.json();
-    
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-    const weekAgoStart = new Date(todayStart);
-    weekAgoStart.setDate(weekAgoStart.getDate() - 7);
-    
-    let todayCount = 0;
-    let yesterdayCount = 0;
-    let weekCount = 0;
-    let olderCount = 0;
-    
-    data.articles.forEach(article => {
-      const pubDate = new Date(article.pubDate);
-      const articleDate = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
-      
-      if (articleDate.getTime() === todayStart.getTime()) {
-        todayCount++;
-      } else if (articleDate.getTime() === yesterdayStart.getTime()) {
-        yesterdayCount++;
-      } else if (articleDate >= weekAgoStart && articleDate < yesterdayStart) {
-        weekCount++;
-      } else {
-        olderCount++;
-      }
-    });
-    
-    document.getElementById('totalArticles').textContent = data.pagination.total || 0;
-    document.getElementById('todayCount').textContent = todayCount;
-    document.getElementById('yesterdayCount').textContent = yesterdayCount;
-    document.getElementById('weekCount').textContent = weekCount;
-    document.getElementById('olderCount').textContent = olderCount;
-  } catch (err) {
-    console.error('加载统计失败:', err);
-  }
-}
-
-// ========================================
-// 显示文章列表（按日期分类）
-// ========================================
-
-function displayArticles(articles) {
+function displayArticlesGrouped(articles) {
   if (articles.length === 0) {
     articlesGrid.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
@@ -167,64 +120,81 @@ function displayArticles(articles) {
         </p>
       </div>
     `;
+    pagination.innerHTML = '';
     return;
   }
 
-  // 按日期分组 - 使用本地时间
+  // 按日期分组
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  const weekAgoStart = new Date(todayStart);
-  weekAgoStart.setDate(weekAgoStart.getDate() - 7);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
 
   const groups = {
-    today: [],
-    yesterday: [],
-    week: [],
-    older: []
+    today: { title: '📅 今天', articles: [] },
+    yesterday: { title: '📅 昨天', articles: [] },
+    week: { title: '📅 本周', articles: [] },
+    older: { title: '📅 更早', articles: [] }
   };
 
   articles.forEach(article => {
     const pubDate = new Date(article.pubDate);
-    const articleDate = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
-    
-    if (articleDate.getTime() === todayStart.getTime()) {
-      groups.today.push(article);
-    } else if (articleDate.getTime() === yesterdayStart.getTime()) {
-      groups.yesterday.push(article);
-    } else if (articleDate >= weekAgoStart && articleDate < yesterdayStart) {
-      groups.week.push(article);
+    if (pubDate >= today) {
+      groups.today.articles.push(article);
+    } else if (pubDate >= yesterday) {
+      groups.yesterday.articles.push(article);
+    } else if (pubDate >= weekAgo) {
+      groups.week.articles.push(article);
     } else {
-      groups.older.push(article);
+      groups.older.articles.push(article);
     }
   });
 
-  // 生成HTML
-  let html = '';
+  // 计算分页
+  const start = (currentPage - 1) * ARTICLES_PER_PAGE;
+  const end = start + ARTICLES_PER_PAGE;
   
-  const sections = [
-    { key: 'today', title: '📅 今天', articles: groups.today },
-    { key: 'yesterday', title: '📅 昨天', articles: groups.yesterday },
-    { key: 'week', title: '📅 本周', articles: groups.week },
-    { key: 'older', title: '📅 更早', articles: groups.older }
-  ];
-
-  sections.forEach(section => {
-    if (section.articles.length > 0) {
-      html += `
-        <div style="grid-column: 1/-1;">
-          <h2 class="section-title">${section.title}</h2>
-        </div>
-      `;
+  // 生成HTML - 按组显示
+  let html = '';
+  let articleCount = 0;
+  
+  ['today', 'yesterday', 'week', 'older'].forEach(groupKey => {
+    const group = groups[groupKey];
+    if (group.articles.length > 0) {
+      // 计算这个组在当前页应该显示多少文章
+      const groupStart = Math.max(0, start - articleCount);
+      const groupEnd = Math.max(0, end - articleCount);
       
-      section.articles.forEach(article => {
-        html += generateArticleCard(article);
-      });
+      if (groupStart < group.articles.length) {
+        // 添加分组标题
+        html += `
+          <div style="grid-column: 1/-1;">
+            <h2 class="section-title">${group.title}</h2>
+          </div>
+        `;
+        
+        // 添加该组的文章
+        const groupArticles = group.articles.slice(groupStart, groupEnd);
+        groupArticles.forEach(article => {
+          html += generateArticleCard(article);
+        });
+      }
+      
+      articleCount += group.articles.length;
     }
   });
 
   articlesGrid.innerHTML = html;
+  
+  // 显示分页
+  displayPagination({
+    page: currentPage,
+    limit: ARTICLES_PER_PAGE,
+    total: articles.length,
+    totalPages: Math.ceil(articles.length / ARTICLES_PER_PAGE)
+  });
 }
 
 function generateArticleCard(article) {
@@ -271,89 +241,150 @@ function generateArticleCard(article) {
 }
 
 // ========================================
-// 显示分页
+// 加载统计信息
 // ========================================
 
-function displayPagination(pagination) {
-  if (pagination.totalPages <= 1) {
+async function loadStats() {
+  try {
+    const response = await fetch('/api/articles?limit=1000');
+    const data = await response.json();
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    let todayCount = 0;
+    let yesterdayCount = 0;
+    let weekCount = 0;
+    let olderCount = 0;
+    
+    data.articles.forEach(article => {
+      const pubDate = new Date(article.pubDate);
+      if (pubDate >= today) {
+        todayCount++;
+      } else if (pubDate >= yesterday) {
+        yesterdayCount++;
+      } else if (pubDate >= weekAgo) {
+        weekCount++;
+      } else {
+        olderCount++;
+      }
+    });
+    
+    document.getElementById('totalArticles').textContent = data.pagination.total || 0;
+    document.getElementById('todayCount').textContent = todayCount;
+    document.getElementById('yesterdayCount').textContent = yesterdayCount;
+    document.getElementById('weekCount').textContent = weekCount;
+    document.getElementById('olderCount').textContent = olderCount;
+  } catch (err) {
+    console.error('加载统计失败:', err);
+  }
+}
+
+// ========================================
+// 分页显示
+// ========================================
+
+function displayPagination(paginationData) {
+  const { page, totalPages } = paginationData;
+  
+  if (totalPages <= 1) {
     pagination.innerHTML = '';
     return;
   }
 
-  const { page, totalPages } = pagination;
+  let html = '';
   
-  let html = `
-    <button class="page-btn" 
-            onclick="changePage(${page - 1})" 
-            ${page === 1 ? 'disabled' : ''}>
+  // 上一页
+  html += `
+    <button class="page-btn" ${page === 1 ? 'disabled' : ''} onclick="changePage(${page - 1})">
       ← 上一页
     </button>
   `;
-
-  // 显示页码
-  const maxButtons = 5;
-  let startPage = Math.max(1, page - Math.floor(maxButtons / 2));
-  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
   
-  if (endPage - startPage < maxButtons - 1) {
-    startPage = Math.max(1, endPage - maxButtons + 1);
+  // 页码
+  const maxVisible = 5;
+  let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+  
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
   }
-
+  
   if (startPage > 1) {
     html += `<button class="page-btn" onclick="changePage(1)">1</button>`;
     if (startPage > 2) {
       html += `<span class="page-info">...</span>`;
     }
   }
-
+  
   for (let i = startPage; i <= endPage; i++) {
     html += `
-      <button class="page-btn ${i === page ? 'active' : ''}" 
-              onclick="changePage(${i})">
+      <button class="page-btn ${i === page ? 'active' : ''}" onclick="changePage(${i})">
         ${i}
       </button>
     `;
   }
-
+  
   if (endPage < totalPages) {
     if (endPage < totalPages - 1) {
       html += `<span class="page-info">...</span>`;
     }
     html += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
   }
-
+  
+  // 下一页
   html += `
-    <button class="page-btn" 
-            onclick="changePage(${page + 1})" 
-            ${page === totalPages ? 'disabled' : ''}>
+    <button class="page-btn" ${page === totalPages ? 'disabled' : ''} onclick="changePage(${page + 1})">
       下一页 →
     </button>
   `;
-
-  this.pagination.innerHTML = html;
+  
+  pagination.innerHTML = html;
 }
-
-// ========================================
-// 翻页
-// ========================================
 
 function changePage(page) {
   currentPage = page;
-  loadArticles();
+  displayArticlesGrouped(allArticles);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ========================================
-// 打开文章
+// 工具函数
 // ========================================
 
-function openArticle(url) {
-  window.open(url, '_blank', 'noopener,noreferrer');
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now - date;
+  
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 60) {
+    return `${minutes}分钟前`;
+  } else if (hours < 24) {
+    return `${hours}小时前`;
+  } else if (days < 7) {
+    return `${days}天前`;
+  } else {
+    return date.toLocaleDateString('zh-CN');
+  }
 }
 
-// ========================================
-// UI 辅助函数
-// ========================================
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function openArticle(url) {
+  window.open(url, '_blank');
+}
 
 function showLoading() {
   loading.style.display = 'block';
@@ -375,11 +406,12 @@ function hideError() {
 }
 
 function showNotification(message, type = 'info') {
+  // 简单的通知实现
   const notification = document.createElement('div');
   notification.textContent = message;
   notification.style.cssText = `
     position: fixed;
-    top: 80px;
+    top: 20px;
     right: 20px;
     padding: 1rem 1.5rem;
     background: ${type === 'success' ? '#10b981' : '#ef4444'};
@@ -387,93 +419,10 @@ function showNotification(message, type = 'info') {
     border-radius: 0.5rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     z-index: 1000;
-    animation: slideIn 0.3s ease-out;
   `;
-  
   document.body.appendChild(notification);
   
   setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => notification.remove(), 300);
+    notification.remove();
   }, 3000);
 }
-
-// ========================================
-// 工具函数
-// ========================================
-
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 60) {
-    return `${diffMins}分钟前`;
-  } else if (diffHours < 24) {
-    return `${diffHours}小时前`;
-  } else if (diffDays < 7) {
-    return `${diffDays}天前`;
-  } else {
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  }
-}
-
-function formatDateTime(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return text.toString().replace(/[&<>"']/g, m => map[m]);
-}
-
-// ========================================
-// 添加CSS动画
-// ========================================
-
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes slideIn {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-  
-  @keyframes slideOut {
-    from {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    to {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-  }
-`;
-document.head.appendChild(style);
