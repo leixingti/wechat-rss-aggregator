@@ -43,6 +43,78 @@ const DEFAULT_CONFIG = {
       name: '智能涌现',
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3582835969.rss',
       enabled: true
+    },
+    {
+      id: '7',
+      name: 'AI公众号7',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3903631794.rss',
+      enabled: true
+    },
+    {
+      id: '8',
+      name: 'AI公众号8',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_2392024520.rss',
+      enabled: true
+    },
+    {
+      id: '9',
+      name: 'AI公众号9',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3933528830.rss',
+      enabled: true
+    },
+    {
+      id: '10',
+      name: 'AI公众号10',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3554086560.rss',
+      enabled: true
+    },
+    {
+      id: '11',
+      name: 'AI公众号11',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3926568365.rss',
+      enabled: true
+    },
+    {
+      id: '12',
+      name: 'AI公众号12',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3599245772.rss',
+      enabled: true
+    },
+    {
+      id: '13',
+      name: 'AI公众号13',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_1304308441.rss',
+      enabled: true
+    },
+    {
+      id: '14',
+      name: 'AI公众号14',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3223096120.rss',
+      enabled: true
+    },
+    {
+      id: '15',
+      name: 'AI公众号15',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3207765945.rss',
+      enabled: true
+    },
+    {
+      id: '16',
+      name: 'AI公众号16',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3900464567.rss',
+      enabled: true
+    },
+    {
+      id: '17',
+      name: 'AI公众号17',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3233554320.rss',
+      enabled: true
+    },
+    {
+      id: '18',
+      name: 'AI公众号18',
+      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3081486433.rss',
+      enabled: true
     }
   ]
 };
