@@ -24,6 +24,7 @@ function initDatabase() {
       pubDate TEXT,
       author TEXT,
       source TEXT,
+      category TEXT DEFAULT 'ai_news',
       imageUrl TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -32,6 +33,31 @@ function initDatabase() {
       console.error('❌ 创建表失败:', err.message);
     } else {
       console.log('✅ 数据库表已就绪');
+      // 检查并添加category字段（兼容旧数据库）
+      addCategoryColumn();
+    }
+  });
+}
+
+// 为已存在的数据库添加category字段
+function addCategoryColumn() {
+  db.all("PRAGMA table_info(articles)", (err, rows) => {
+    if (err) {
+      console.error('❌ 检查表结构失败:', err.message);
+      return;
+    }
+    
+    const hasCategory = rows.some(row => row.name === 'category');
+    
+    if (!hasCategory) {
+      console.log('🔄 添加category字段...');
+      db.run(`ALTER TABLE articles ADD COLUMN category TEXT DEFAULT 'ai_news'`, (err) => {
+        if (err) {
+          console.error('❌ 添加category字段失败:', err.message);
+        } else {
+          console.log('✅ category字段已添加');
+        }
+      });
     }
   });
 }

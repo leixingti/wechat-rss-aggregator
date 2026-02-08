@@ -178,6 +178,89 @@ app.post('/api/admin/update-sources', authMiddleware, async (req, res) => {
   }
 });
 
+// ========================================
+// 会议 API
+// ========================================
+const { getAllConferences, getUpcomingConferences, generateICS } = require('./conferences');
+
+// 获取所有会议
+app.get('/api/conferences', (req, res) => {
+  const conferences = getAllConferences();
+  res.json({ success: true, conferences });
+});
+
+// 获取即将举行的会议
+app.get('/api/conferences/upcoming', (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const conferences = getUpcomingConferences(limit);
+  res.json({ success: true, conferences });
+});
+
+// 下载会议日历文件
+app.get('/api/conferences/:id/calendar', (req, res) => {
+  const { id } = req.params;
+  const conferences = getAllConferences();
+  const conference = conferences.find(c => c.id === id);
+  
+  if (!conference) {
+    return res.status(404).json({ success: false, error: '会议未找到' });
+  }
+  
+  const icsContent = generateICS(conference);
+  
+  res.setHeader('Content-Type', 'text/calendar');
+  res.setHeader('Content-Disposition', `attachment; filename="${conference.id}.ics"`);
+  res.send(icsContent);
+});
+
+// ========================================
+// 文章按分类获取 API
+// ========================================
+
+// 获取文章列表（支持分类筛选）
+app.get('/api/articles/by-category', (req, res) => {
+  const { category, page = 1, limit = 100 } = req.query;
+  const offset = (page - 1) * limit;
+  
+  let query = 'SELECT * FROM articles';
+  let countQuery = 'SELECT COUNT(*) as total FROM articles';
+  const params = [];
+  
+  if (category && category !== 'all') {
+    query += ' WHERE category = ?';
+    countQuery += ' WHERE category = ?';
+    params.push(category);
+  }
+  
+  query += ' ORDER BY pubDate DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(limit), offset);
+  
+  // 获取总数
+  db.get(countQuery, category ? [category] : [], (err, countResult) => {
+    if (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    
+    // 获取文章列表
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+      
+      res.json({
+        success: true,
+        articles: rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: countResult.total,
+          totalPages: Math.ceil(countResult.total / limit)
+        }
+      });
+    });
+  });
+});
+
 // 服务前端页面
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -42,8 +42,8 @@ async function fetchFromFeed(feed) {
         await new Promise((resolve, reject) => {
           db.run(
             `INSERT OR IGNORE INTO articles 
-             (title, link, description, content, pubDate, author, source, imageUrl) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+             (title, link, description, content, pubDate, author, source, category, imageUrl) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               item.title || '无标题',
               item.link,
@@ -52,6 +52,7 @@ async function fetchFromFeed(feed) {
               item.pubDate || new Date().toISOString(),
               item.creator || item.author || '未知作者',
               feed.name,
+              feed.category || 'ai_news',
               imageUrl
             ],
             function(err) {
