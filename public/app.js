@@ -8,8 +8,8 @@ let currentSearch = '';
 const ARTICLES_PER_PAGE = 100;
 let allArticles = [];
 let allConferences = [];
-let latestArticleId = null; // 记录最新文章ID，用于检测新文章
-let checkInterval = null; // 轮询定时器
+let ws = null; // WebSocket连接
+let reconnectTimer = null; // 重连定时器
 
 // ========================================
 // DOM 元素
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStats();
   loadContent(currentTab);
   setupEventListeners();
-  startNewArticlesCheck(); // 启动智能轮询
+  connectWebSocket(); // 连接WebSocket实时推送
 });
 
 function setupEventListeners() {
@@ -75,68 +75,88 @@ function setupEventListeners() {
 }
 
 // ========================================
-// 智能轮询：检查新文章
+// WebSocket 实时推送
 // ========================================
 
-function startNewArticlesCheck() {
-  // 每2分钟检查一次
-  checkInterval = setInterval(async () => {
-    await checkForNewArticles();
-  }, 2 * 60 * 1000); // 2分钟
+function connectWebSocket() {
+  // 获取WebSocket URL
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}`;
   
-  console.log('✅ 智能轮询已启动：每2分钟检查新文章');
+  console.log('🔌 正在连接WebSocket:', wsUrl);
+  
+  try {
+    ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('✅ WebSocket连接成功');
+      
+      // 清除重连定时器
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleWebSocketMessage(data);
+      } catch (error) {
+        console.error('解析WebSocket消息失败:', error);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('❌ WebSocket错误:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('🔌 WebSocket连接断开，5秒后重连...');
+      
+      // 5秒后自动重连
+      reconnectTimer = setTimeout(() => {
+        connectWebSocket();
+      }, 5000);
+    };
+  } catch (error) {
+    console.error('创建WebSocket连接失败:', error);
+    
+    // 5秒后重试
+    reconnectTimer = setTimeout(() => {
+      connectWebSocket();
+    }, 5000);
+  }
 }
 
-async function checkForNewArticles() {
-  try {
-    // 只在显示文章Tab时检查（不在会议Tab检查）
-    if (currentTab === 'conferences') {
-      console.log('⏭️ 跳过检查：当前在会议Tab');
-      return;
-    }
-    
-    console.log(`🔍 开始检查新文章 [Tab: ${currentTab}, 当前最新ID: ${latestArticleId}]`);
-    
-    const response = await fetch(`/api/articles?page=1&limit=1`);
-    
-    if (!response.ok) {
-      console.warn('⚠️ API请求失败:', response.status);
-      return;
-    }
-    
-    const data = await response.json();
-    
-    if (data.articles && data.articles.length > 0) {
-      const newestArticle = data.articles[0];
+function handleWebSocketMessage(data) {
+  console.log('📨 收到WebSocket消息:', data);
+  
+  switch (data.type) {
+    case 'connected':
+      console.log('🎉', data.message);
+      break;
       
-      // 筛选当前分类的文章
-      const articleCategory = newestArticle.category || 'ai_news';
+    case 'new_articles':
+      handleNewArticlesNotification(data);
+      break;
       
-      console.log(`📰 最新文章: ID=${newestArticle.id}, 分类=${articleCategory}, 标题=${newestArticle.title}`);
-      
-      // 只检查当前Tab的新文章
-      if (articleCategory !== currentTab) {
-        console.log(`⏭️ 跳过：文章分类(${articleCategory})与当前Tab(${currentTab})不匹配`);
-        return;
-      }
-      
-      // 第一次记录或发现新文章
-      if (latestArticleId === null) {
-        latestArticleId = newestArticle.id;
-        console.log(`📝 首次记录文章ID: ${latestArticleId}`);
-      } else if (newestArticle.id > latestArticleId) {
-        // 有新文章！
-        const newCount = newestArticle.id - latestArticleId;
-        console.log(`🔔 发现 ${newCount} 篇新文章！显示提醒条...`);
-        showNewArticlesNotification(newCount);
-      } else {
-        console.log(`✅ 无新文章 (最新ID: ${newestArticle.id} <= 记录ID: ${latestArticleId})`);
-      }
-    } else {
-      console.warn('⚠️ API返回空数据');
-    }
-  } catch (err) {
-    console.error('❌ 检查新文章失败:', err);
+    default:
+      console.log('未知消息类型:', data.type);
+  }
+}
+
+function handleNewArticlesNotification(data) {
+  const { category, count, articles } = data;
+  
+  console.log(`🔔 收到新文章推送: ${count}篇 [分类: ${category}]`);
+  
+  // 只在当前Tab有新文章时显示提醒
+  if (category === currentTab && count > 0) {
+    showNewArticlesNotification(count);
+    console.log(`✨ 显示提醒: ${count}篇新文章`);
+  } else {
+    console.log(`⏭️ 跳过提醒: 当前Tab(${currentTab}) != 文章分类(${category})`);
   }
 }
 
@@ -172,11 +192,6 @@ function hideNewArticlesNotification() {
 async function handleRefreshNew() {
   hideNewArticlesNotification();
   await handleRefresh();
-  
-  // 更新最新文章ID
-  if (allArticles.length > 0) {
-    latestArticleId = allArticles[0].id;
-  }
 }
 
 // ========================================
@@ -257,12 +272,6 @@ async function loadArticlesByCategory(category) {
     const targetPagination = category === 'ai_news' ? pagination : itPagination;
     
     displayArticlesGrouped(allArticles, targetGrid, targetPagination);
-    
-    // 首次加载时记录最新文章ID，用于后续新文章检测
-    if (allArticles.length > 0 && latestArticleId === null) {
-      latestArticleId = allArticles[0].id;
-      console.log('📝 已记录初始文章ID:', latestArticleId);
-    }
   } catch (err) {
     showError('加载文章失败，请稍后重试');
     console.error('加载错误:', err);
