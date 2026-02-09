@@ -8,6 +8,8 @@ let currentSearch = '';
 const ARTICLES_PER_PAGE = 100;
 let allArticles = [];
 let allConferences = [];
+let latestArticleId = null; // 记录最新文章ID，用于检测新文章
+let checkInterval = null; // 轮询定时器
 
 // ========================================
 // DOM 元素
@@ -26,14 +28,23 @@ const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 
+// 新文章提醒相关元素
+let newArticlesNotification, refreshNewBtn, closeNotificationBtn;
+
 // ========================================
 // 初始化
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 初始化新文章提醒元素
+  newArticlesNotification = document.getElementById('newArticlesNotification');
+  refreshNewBtn = document.getElementById('refreshNewBtn');
+  closeNotificationBtn = document.getElementById('closeNotification');
+  
   loadStats();
   loadContent(currentTab);
   setupEventListeners();
+  startNewArticlesCheck(); // 启动智能轮询
 });
 
 function setupEventListeners() {
@@ -53,6 +64,119 @@ function setupEventListeners() {
 
   // 刷新
   refreshBtn.addEventListener('click', handleRefresh);
+  
+  // 新文章提醒按钮（如果元素存在）
+  if (refreshNewBtn) {
+    refreshNewBtn.addEventListener('click', handleRefreshNew);
+  }
+  if (closeNotificationBtn) {
+    closeNotificationBtn.addEventListener('click', hideNewArticlesNotification);
+  }
+}
+
+// ========================================
+// 智能轮询：检查新文章
+// ========================================
+
+function startNewArticlesCheck() {
+  // 每2分钟检查一次
+  checkInterval = setInterval(async () => {
+    await checkForNewArticles();
+  }, 2 * 60 * 1000); // 2分钟
+  
+  console.log('✅ 智能轮询已启动：每2分钟检查新文章');
+}
+
+async function checkForNewArticles() {
+  try {
+    // 只在显示文章Tab时检查（不在会议Tab检查）
+    if (currentTab === 'conferences') {
+      console.log('⏭️ 跳过检查：当前在会议Tab');
+      return;
+    }
+    
+    console.log(`🔍 开始检查新文章 [Tab: ${currentTab}, 当前最新ID: ${latestArticleId}]`);
+    
+    const response = await fetch(`/api/articles?page=1&limit=1`);
+    
+    if (!response.ok) {
+      console.warn('⚠️ API请求失败:', response.status);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.articles && data.articles.length > 0) {
+      const newestArticle = data.articles[0];
+      
+      // 筛选当前分类的文章
+      const articleCategory = newestArticle.category || 'ai_news';
+      
+      console.log(`📰 最新文章: ID=${newestArticle.id}, 分类=${articleCategory}, 标题=${newestArticle.title}`);
+      
+      // 只检查当前Tab的新文章
+      if (articleCategory !== currentTab) {
+        console.log(`⏭️ 跳过：文章分类(${articleCategory})与当前Tab(${currentTab})不匹配`);
+        return;
+      }
+      
+      // 第一次记录或发现新文章
+      if (latestArticleId === null) {
+        latestArticleId = newestArticle.id;
+        console.log(`📝 首次记录文章ID: ${latestArticleId}`);
+      } else if (newestArticle.id > latestArticleId) {
+        // 有新文章！
+        const newCount = newestArticle.id - latestArticleId;
+        console.log(`🔔 发现 ${newCount} 篇新文章！显示提醒条...`);
+        showNewArticlesNotification(newCount);
+      } else {
+        console.log(`✅ 无新文章 (最新ID: ${newestArticle.id} <= 记录ID: ${latestArticleId})`);
+      }
+    } else {
+      console.warn('⚠️ API返回空数据');
+    }
+  } catch (err) {
+    console.error('❌ 检查新文章失败:', err);
+  }
+}
+
+function showNewArticlesNotification(count = 1) {
+  if (!newArticlesNotification) return;
+  
+  const countText = count > 1 ? `${count}篇` : '1篇';
+  const countElement = document.getElementById('newArticlesCount');
+  if (countElement) {
+    countElement.textContent = countText;
+  }
+  
+  newArticlesNotification.style.display = 'flex';
+  
+  // 添加滑入动画
+  setTimeout(() => {
+    newArticlesNotification.style.opacity = '1';
+    newArticlesNotification.style.transform = 'translateY(0)';
+  }, 10);
+}
+
+function hideNewArticlesNotification() {
+  if (!newArticlesNotification) return;
+  
+  newArticlesNotification.style.opacity = '0';
+  newArticlesNotification.style.transform = 'translateY(-20px)';
+  
+  setTimeout(() => {
+    newArticlesNotification.style.display = 'none';
+  }, 300);
+}
+
+async function handleRefreshNew() {
+  hideNewArticlesNotification();
+  await handleRefresh();
+  
+  // 更新最新文章ID
+  if (allArticles.length > 0) {
+    latestArticleId = allArticles[0].id;
+  }
 }
 
 // ========================================
@@ -133,6 +257,12 @@ async function loadArticlesByCategory(category) {
     const targetPagination = category === 'ai_news' ? pagination : itPagination;
     
     displayArticlesGrouped(allArticles, targetGrid, targetPagination);
+    
+    // 首次加载时记录最新文章ID，用于后续新文章检测
+    if (allArticles.length > 0 && latestArticleId === null) {
+      latestArticleId = allArticles[0].id;
+      console.log('📝 已记录初始文章ID:', latestArticleId);
+    }
   } catch (err) {
     showError('加载文章失败，请稍后重试');
     console.error('加载错误:', err);
