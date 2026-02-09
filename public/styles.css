@@ -37,6 +37,17 @@ body {
   font-size: 36px; /* 基础字体从 16px → 24px → 36px (共增加125%) */
 }
 
+/* 强制所有元素继承body的字体大小 */
+*, *::before, *::after {
+  font-size: inherit;
+}
+
+/* 仅为特定元素设置相对大小 */
+h1 { font-size: 1.5em; }
+h2 { font-size: 1.25em; }
+h3 { font-size: 1.125em; }
+small { font-size: 0.875em; }
+
 .container {
   max-width: 1200px;
   margin: 0 auto;

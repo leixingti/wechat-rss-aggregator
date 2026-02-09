@@ -272,10 +272,15 @@
         filteredFeeds = allFeeds.filter(feed => feed.category === currentCategory);
       }
       
-      const html = filteredFeeds.map(feed => `
+      const html = filteredFeeds.map((feed, index) => `
         <div class="feed-item">
           <div class="feed-info">
-            <h3>${feed.name}</h3>
+            <h3>
+              <span style="display:inline-block;background:#6b7280;color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;margin-right:0.5rem;font-size:0.875rem;">
+                #${index + 1}
+              </span>
+              ${feed.name}
+            </h3>
             <p style="font-size:0.875rem;color:#6b7280;margin-top:0.25rem">${feed.url}</p>
             <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
               <span style="font-size:0.75rem;background:${categoryColors[feed.category || 'ai_news']};color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;">
