@@ -168,7 +168,7 @@
             🤖 聚焦AI行业 (<span id="countAI">0</span>)
           </button>
           <button class="admin-tab-btn" data-category="it_news" onclick="switchAdminTab('it_news')">
-            💻 IT行业动态 (<span id="countIT">0</span>)
+            💻 IT行业新闻 (<span id="countIT">0</span>)
           </button>
         </div>
       </div>
@@ -194,7 +194,7 @@
         <label>分类</label>
         <select id="feedCategory" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
           <option value="ai_news">聚焦AI行业</option>
-          <option value="it_news">IT行业动态</option>
+          <option value="it_news">IT行业新闻</option>
         </select>
       </div>
       <div style="display:flex;gap:1rem;margin-top:1.5rem">
@@ -246,7 +246,7 @@
       const titles = {
         'all': '全部RSS源列表',
         'ai_news': '聚焦AI行业 RSS源列表',
-        'it_news': 'IT行业动态 RSS源列表'
+        'it_news': 'IT行业新闻 RSS源列表'
       };
       document.getElementById('currentTabTitle').textContent = titles[category];
       
@@ -258,7 +258,7 @@
     function renderFeedList() {
       const categoryNames = {
         'ai_news': '聚焦AI行业',
-        'it_news': 'IT行业动态'
+        'it_news': 'IT行业新闻'
       };
       
       const categoryColors = {

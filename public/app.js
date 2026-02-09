@@ -165,10 +165,10 @@ function displayArticlesGrouped(articles, targetGrid, targetPagination) {
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   const groups = {
-    today: { title: '📅 今天', articles: [] },
-    yesterday: { title: '📅 昨天', articles: [] },
-    week: { title: '📅 本周', articles: [] },
-    older: { title: '📅 更早', articles: [] }
+    today: { title: '今天', articles: [] },
+    yesterday: { title: '昨天', articles: [] },
+    week: { title: '本周', articles: [] },
+    older: { title: '更早', articles: [] }
   };
 
   articles.forEach(article => {
