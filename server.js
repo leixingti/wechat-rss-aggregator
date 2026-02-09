@@ -2,12 +2,73 @@ const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
 const path = require('path');
+const http = require('http');
+const WebSocket = require('ws');
 const db = require('./database');
 const { fetchArticles } = require('./fetcher');
 const rssManager = require('./rss-manager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 创建HTTP服务器
+const server = http.createServer(app);
+
+// 创建WebSocket服务器
+const wss = new WebSocket.Server({ server });
+
+// WebSocket连接管理
+const clients = new Set();
+
+wss.on('connection', (ws) => {
+  console.log('🔌 新的WebSocket连接');
+  clients.add(ws);
+  
+  // 发送欢迎消息
+  ws.send(JSON.stringify({
+    type: 'connected',
+    message: '实时推送已连接',
+    timestamp: new Date().toISOString()
+  }));
+  
+  ws.on('close', () => {
+    console.log('🔌 WebSocket连接断开');
+    clients.delete(ws);
+  });
+  
+  ws.on('error', (error) => {
+    console.error('WebSocket错误:', error);
+    clients.delete(ws);
+  });
+});
+
+// 广播新文章给所有客户端
+function broadcastNewArticles(articles, category) {
+  const message = JSON.stringify({
+    type: 'new_articles',
+    category: category,
+    count: articles.length,
+    articles: articles,
+    timestamp: new Date().toISOString()
+  });
+  
+  let successCount = 0;
+  clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(message);
+        successCount++;
+      } catch (error) {
+        console.error('发送消息失败:', error);
+      }
+    }
+  });
+  
+  console.log(`📢 已向 ${successCount} 个客户端推送 ${articles.length} 篇新文章`);
+}
+
+// 导出广播函数供其他模块使用
+global.broadcastNewArticles = broadcastNewArticles;
 
 // 中间件
 app.use(cors());
@@ -278,10 +339,12 @@ cron.schedule('*/15 * * * *', async () => {
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 HTTP服务器运行在 http://localhost:${PORT}`);
+  console.log(`🔌 WebSocket服务器运行在 ws://localhost:${PORT}`);
   console.log(`⏰ 定时任务已设置：每15分钟抓取一次文章`);
   console.log(`📊 健康检查：http://localhost:${PORT}/health`);
+  console.log(`👥 当前WebSocket连接数: 0`);
   
   // 启动时立即抓取一次
   fetchArticles().then(() => {

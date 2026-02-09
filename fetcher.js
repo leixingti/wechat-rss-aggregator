@@ -138,6 +138,44 @@ async function fetchArticles() {
     console.log(`   ⚠️  错误: ${errors.length} 个`);
     errors.forEach(err => console.log(`      - ${err}`));
   }
+  
+  // 如果有新文章，通过WebSocket推送给所有客户端
+  if (totalNew > 0 && global.broadcastNewArticles) {
+    console.log(`📢 准备推送 ${totalNew} 篇新文章...`);
+    
+    // 获取最新的文章（按分类）
+    db.all(
+      `SELECT * FROM articles ORDER BY pubDate DESC LIMIT ?`,
+      [totalNew],
+      (err, articles) => {
+        if (err) {
+          console.error('获取新文章失败:', err);
+          return;
+        }
+        
+        // 按分类分组
+        const articlesByCategory = {
+          ai_news: [],
+          it_news: []
+        };
+        
+        articles.forEach(article => {
+          const category = article.category || 'ai_news';
+          if (articlesByCategory[category]) {
+            articlesByCategory[category].push(article);
+          }
+        });
+        
+        // 分别推送不同分类的文章
+        if (articlesByCategory.ai_news.length > 0) {
+          global.broadcastNewArticles(articlesByCategory.ai_news, 'ai_news');
+        }
+        if (articlesByCategory.it_news.length > 0) {
+          global.broadcastNewArticles(articlesByCategory.it_news, 'it_news');
+        }
+      }
+    );
+  }
 
   return {
     totalNew,
