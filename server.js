@@ -133,11 +133,11 @@ app.get('/api/admin/feeds', authMiddleware, (req, res) => {
 
 // 添加RSS源
 app.post('/api/admin/feeds', authMiddleware, (req, res) => {
-  const { name, url } = req.body;
+  const { name, url, category } = req.body;
   if (!name || !url) {
     return res.status(400).json({ success: false, error: '缺少参数' });
   }
-  const success = rssManager.addRSSFeed(name, url);
+  const success = rssManager.addRSSFeed(name, url, category);
   res.json({ success });
 });
 
