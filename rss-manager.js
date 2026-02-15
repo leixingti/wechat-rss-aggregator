@@ -134,6 +134,92 @@ const DEFAULT_CONFIG = {
       url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3081486433.rss',
       enabled: true,
       category: 'ai_news'
+    },
+    // 5家AI巨头公司的官方RSS源
+    {
+      id: '19',
+      name: 'OpenAI',
+      url: 'https://openai.com/news/rss.xml',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '20',
+      name: 'Google AI',
+      url: 'https://research.google/blog/rss',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '21',
+      name: 'Anthropic',
+      url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '22',
+      name: 'Meta AI',
+      url: 'https://research.facebook.com/feed',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '23',
+      name: 'Microsoft AI',
+      url: 'https://www.microsoft.com/en-us/research/blog/feed/',
+      enabled: true,
+      category: 'ai_news'
+    },
+    // 更多顶级AI公司和研究机构
+    {
+      id: '24',
+      name: 'DeepMind',
+      url: 'https://deepmind.google/blog/rss.xml',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '25',
+      name: 'Hugging Face',
+      url: 'https://huggingface.co/blog/feed.xml',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '26',
+      name: 'NVIDIA AI',
+      url: 'https://developer.nvidia.com/blog/feed',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '27',
+      name: 'Stability AI',
+      url: 'https://stability.ai/blog?format=rss',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '28',
+      name: 'Stanford AI',
+      url: 'https://ai.stanford.edu/blog/feed.xml',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '29',
+      name: 'MIT AI',
+      url: 'https://news.mit.edu/rss/topic/artificial-intelligence2',
+      enabled: true,
+      category: 'ai_news'
+    },
+    {
+      id: '30',
+      name: 'AWS AI',
+      url: 'https://aws.amazon.com/blogs/machine-learning/feed/',
+      enabled: true,
+      category: 'ai_news'
     }
   ]
 };
