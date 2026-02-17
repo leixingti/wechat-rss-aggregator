@@ -74,6 +74,9 @@
         <button class="tab-btn" data-tab="conferences">
           <span class="tab-text">AI行业会议</span>
         </button>
+        <button class="tab-btn" data-tab="vendors">
+          <span class="tab-text">AI大模型厂商</span>
+        </button>
       </div>
     </div>
   </section>
@@ -105,6 +108,22 @@
       <!-- AI行业会议板块 -->
       <div id="conferences-panel" class="tab-panel">
         <div id="conferencesList" class="conferences-list"></div>
+      </div>
+
+      <!-- AI大模型厂商板块 -->
+      <div id="vendors-panel" class="tab-panel">
+        <div class="vendors-header">
+          <h2 class="vendors-title">全球 AI 大模型厂商 TOP 50</h2>
+          <p class="vendors-subtitle">覆盖全球最具影响力的AI大模型研发机构，涵盖国际巨头与中国领军企业</p>
+          <div class="vendors-filter">
+            <button class="vf-btn active" data-region="all">全部 <span>50</span></button>
+            <button class="vf-btn" data-region="us">🇺🇸 美国 <span>21</span></button>
+            <button class="vf-btn" data-region="cn">🇨🇳 中国 <span>23</span></button>
+            <button class="vf-btn" data-region="eu">🇪🇺 欧洲 <span>4</span></button>
+            <button class="vf-btn" data-region="other">其他 <span>2</span></button>
+          </div>
+        </div>
+        <div id="vendorsGrid" class="vendors-grid"></div>
       </div>
     </div>
   </main>
