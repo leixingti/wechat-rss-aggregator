@@ -1,21 +1,22 @@
 /**
- * AI文章摘要生成器
- * 使用Claude API自动提炼RSS文章的核心内容（1000字以内）
+ * AI文章摘要生成器 - DeepSeek版本
+ * 使用DeepSeek API自动提炼RSS文章的核心内容（1000字以内）
+ * 成本：约$0.004/篇，比Claude便宜91%
  */
 
 const https = require('https');
-const cheerio = require('cheerio'); // 需要安装：npm install cheerio
+const cheerio = require('cheerio');
 
 // 环境变量配置
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DEEPSEEK_MODEL = 'deepseek-chat'; // 或 'deepseek-reasoner' 用于复杂推理
 
 /**
- * 调用Claude API生成摘要
+ * 调用DeepSeek API生成摘要
  */
-async function callClaudeAPI(articleContent, title, source) {
-  if (!ANTHROPIC_API_KEY) {
-    console.warn('⚠️ 未配置ANTHROPIC_API_KEY，跳过摘要生成');
+async function callDeepSeekAPI(articleContent, title, source) {
+  if (!DEEPSEEK_API_KEY) {
+    console.warn('⚠️ 未配置DEEPSEEK_API_KEY，跳过摘要生成');
     return null;
   }
 
@@ -37,26 +38,27 @@ ${articleContent}
 请直接输出摘要，无需添加"摘要："等前缀。`;
 
   const requestData = JSON.stringify({
-    model: CLAUDE_MODEL,
-    max_tokens: 2000,
+    model: DEEPSEEK_MODEL,
     messages: [
       {
-        role: 'user',
+        role: "user",
         content: prompt
       }
-    ]
+    ],
+    max_tokens: 2000,
+    temperature: 0.7,
+    stream: false
   });
 
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'api.anthropic.com',
+      hostname: 'api.deepseek.com',
       port: 443,
-      path: '/v1/messages',
+      path: '/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
         'Content-Length': Buffer.byteLength(requestData)
       }
     };
@@ -72,13 +74,16 @@ ${articleContent}
         try {
           if (res.statusCode === 200) {
             const response = JSON.parse(data);
-            const summary = response.content
-              .filter(item => item.type === 'text')
-              .map(item => item.text)
-              .join('\n');
-            resolve(summary);
+            const summary = response.choices?.[0]?.message?.content || '';
+            
+            if (summary) {
+              resolve(summary.trim());
+            } else {
+              console.error('❌ DeepSeek API返回空内容');
+              resolve(null);
+            }
           } else {
-            console.error(`❌ Claude API错误 (${res.statusCode}):`, data);
+            console.error(`❌ DeepSeek API错误 (${res.statusCode}):`, data);
             resolve(null);
           }
         } catch (err) {
@@ -90,6 +95,12 @@ ${articleContent}
 
     req.on('error', (err) => {
       console.error('❌ API请求失败:', err.message);
+      resolve(null);
+    });
+
+    req.setTimeout(30000, () => {
+      req.destroy();
+      console.error('❌ API请求超时');
       resolve(null);
     });
 
@@ -204,13 +215,13 @@ async function generateSummary(article) {
       return null;
     }
 
-    // 5. 限制输入长度（避免超过API限制）
+    // 5. 限制输入长度（DeepSeek支持更长上下文，但为了成本考虑）
     if (articleContent.length > 20000) {
       articleContent = articleContent.substring(0, 20000) + '...';
     }
 
-    // 6. 调用Claude API生成摘要
-    const summary = await callClaudeAPI(
+    // 6. 调用DeepSeek API生成摘要
+    const summary = await callDeepSeekAPI(
       articleContent,
       article.title,
       article.source
@@ -233,7 +244,7 @@ async function generateSummary(article) {
 /**
  * 批量生成摘要（带延迟，避免API限流）
  */
-async function batchGenerateSummaries(articles, delayMs = 1000) {
+async function batchGenerateSummaries(articles, delayMs = 500) {
   const results = [];
   
   for (let i = 0; i < articles.length; i++) {
@@ -253,7 +264,7 @@ async function batchGenerateSummaries(articles, delayMs = 1000) {
       results.push({ id: article.id, summary });
     }
 
-    // 延迟（避免API限流）
+    // 延迟（DeepSeek限流较宽松，可以设置更短）
     if (i < articles.length - 1) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
