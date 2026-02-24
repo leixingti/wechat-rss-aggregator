@@ -66,31 +66,39 @@ async function fetchFromFeed(feed) {
               } else if (this.changes > 0) {
                 newCount++;
                 
-                // 异步生成摘要（不阻塞RSS抓取）
-                const insertedId = this.lastID;
-                const { generateSummary } = require('./summarizer');
+                // 只对AI行业新闻生成摘要（节省50%成本）
+                const articleCategory = feed.category || 'ai_news';
                 
-                setImmediate(async () => {
-                  try {
-                    const summary = await generateSummary({
-                      id: insertedId,
-                      title: item.title,
-                      link: item.link,
-                      content: item.content || item.description,
-                      description: item.contentSnippet || item.description,
-                      source: feed.name
-                    });
-                    
-                    if (summary) {
-                      db.run(
-                        'UPDATE articles SET summary = ?, summary_generated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                        [summary, insertedId]
-                      );
+                if (articleCategory === 'ai_news') {
+                  // 异步生成摘要（不阻塞RSS抓取）
+                  const insertedId = this.lastID;
+                  const { generateSummary } = require('./summarizer');
+                  
+                  setImmediate(async () => {
+                    try {
+                      const summary = await generateSummary({
+                        id: insertedId,
+                        title: item.title,
+                        link: item.link,
+                        content: item.content || item.description,
+                        description: item.contentSnippet || item.description,
+                        source: feed.name
+                      });
+                      
+                      if (summary) {
+                        db.run(
+                          'UPDATE articles SET summary = ?, summary_generated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                          [summary, insertedId]
+                        );
+                        console.log(`  📝 AI摘要已生成: ${item.title.substring(0, 30)}...`);
+                      }
+                    } catch (err) {
+                      console.error('  ⚠️  摘要生成失败:', err.message);
                     }
-                  } catch (err) {
-                    console.error('  ⚠️  摘要生成失败:', err.message);
-                  }
-                });
+                  });
+                } else {
+                  console.log(`  ⏭️  跳过摘要生成（IT新闻）: ${item.title.substring(0, 30)}...`);
+                }
                 
                 resolve();
               } else {
