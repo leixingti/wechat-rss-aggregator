@@ -1,341 +1,254 @@
-# 微信公众号文章聚合系统
+# 🚀 IT行业动态聚合平台
 
-一个简洁现代的微信公众号文章聚合平台，支持自动抓取、展示和搜索文章。
+全功能RSS新闻聚合系统，集成AI自动摘要、实时推送、智能翻译等功能。
 
-## ✨ 功能特性
+## ✨ 核心功能
 
-- ⏰ **自动抓取**：每小时自动抓取最新文章
-- 🔍 **搜索功能**：支持标题和内容搜索
-- 📱 **响应式设计**：完美适配手机和电脑
-- 🎨 **简约现代**：白色背景 + 蓝色主色调
-- 💾 **数据持久化**：使用SQLite数据库存储
-- 🚀 **一键部署**：支持Railway平台快速部署
+### 1. 📰 多源RSS聚合
+- ✅ 30+优质RSS源（18个中文 + 12个国际）
+- ✅ 自动分类（AI行业新闻 / IT行业动态 / AI会议）
+- ✅ 每15分钟自动抓取
+- ✅ WebSocket实时推送
 
-## 📋 技术栈
+### 2. 🤖 AI智能摘要
+- ✅ Claude Sonnet 4自动生成800-1000字摘要
+- ✅ 提炼核心观点、关键数据、影响分析
+- ✅ 精美摘要详情页（渐变紫色设计）
+- ✅ 智能抓取完整文章（RSS内容不足时）
 
-**后端：**
-- Node.js + Express
-- SQLite 数据库
-- node-cron 定时任务
-- rss-parser RSS解析
+### 3. 🌍 AI翻译（可选）
+- ✅ 自动识别中英文内容
+- ✅ 标题翻译（节省成本）
+- ✅ 支持国际AI公司新闻
 
-**前端：**
-- 原生 HTML/CSS/JavaScript
-- 现代化响应式设计
-- 无需任何框架打包
+### 4. 📊 6大展示板块
+- **聚焦AI行业** - AI新闻与技术动态
+- **IT行业新闻** - 科技行业综合资讯
+- **AI行业会议** - 全球AI会议日历
+- **AI大模型厂商** - 全球TOP50大模型公司
+- **旗舰AI 100** - 量子位智库年度榜单
+- **创新AI 100** - 2026年潜力产品
 
-## 🚀 快速开始
+## 🎯 快速开始
 
-### 方式一：本地运行（用于测试）
-
-#### 1. 安装 Node.js
-
-确保您的电脑已安装 Node.js（18.0+）：
-```bash
-node --version
-```
-
-如果未安装，请访问 https://nodejs.org/ 下载安装。
-
-#### 2. 下载项目代码
-
-将项目文件夹下载到您的电脑。
-
-#### 3. 安装依赖
-
-打开终端（Windows用户打开命令提示符或PowerShell），进入项目文件夹：
+### 本地开发
 
 ```bash
+# 1. 克隆项目
+git clone https://github.com/你的用户名/wechat-rss-aggregator.git
 cd wechat-rss-aggregator
+
+# 2. 安装依赖
 npm install
-```
 
-#### 4. 配置RSS源
+# 3. 配置环境变量（可选）
+# 创建 .env 文件
+echo "ANTHROPIC_API_KEY=sk-ant-xxx..." > .env
 
-编辑 `fetcher.js` 文件，修改 `RSS_FEEDS` 数组：
-
-```javascript
-const RSS_FEEDS = [
-  {
-    name: '您的公众号名称',
-    url: 'https://your-rss-feed-url.com/feed', // 替换为实际RSS地址
-  },
-  // 添加更多RSS源...
-];
-```
-
-**获取RSS源的方法：**
-- 使用 RSSHub：https://docs.rsshub.app/
-- 使用 we-mp-rss 服务
-- 其他RSS生成服务
-
-#### 5. 启动服务器
-
-```bash
+# 4. 启动项目
 npm start
+
+# 5. 访问应用
+# 浏览器打开 http://localhost:3000
 ```
 
-#### 6. 访问网站
+### Railway部署
 
-打开浏览器，访问：http://localhost:3000
+1. **连接GitHub仓库**
+   - 访问 https://railway.app
+   - 点击 "New Project" → "Deploy from GitHub repo"
+   - 选择此仓库
 
-您应该能看到网站界面！
+2. **配置环境变量**（可选，启用AI摘要需要）
+   ```
+   ANTHROPIC_API_KEY=sk-ant-api03-xxx...
+   ```
 
-### 方式二：部署到 Railway（推荐）
+3. **自动部署**
+   - Railway自动检测配置并部署
+   - 3-5分钟后即可访问
 
-#### 步骤1：创建 GitHub 仓库
+## 📁 项目结构
 
-1. 访问 https://github.com/ 并登录
-2. 点击右上角 "+" → "New repository"
-3. 填写仓库名称，例如：`wechat-rss-aggregator`
-4. 选择 "Public" 或 "Private"
-5. 点击 "Create repository"
-
-#### 步骤2：上传代码到 GitHub
-
-**如果您会用 Git：**
-
-```bash
-cd wechat-rss-aggregator
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/您的用户名/wechat-rss-aggregator.git
-git push -u origin main
 ```
-
-**如果您不会用 Git（简单方法）：**
-
-1. 访问您刚创建的 GitHub 仓库页面
-2. 点击 "uploading an existing file"
-3. 将项目文件夹内的**所有文件**拖入浏览器窗口
-4. 滚动到底部，点击 "Commit changes"
-
-#### 步骤3：部署到 Railway
-
-1. **注册 Railway**
-   - 访问 https://railway.app/
-   - 点击 "Login" 或 "Start a New Project"
-   - 使用 GitHub 账号登录（推荐）
-
-2. **创建新项目**
-   - 登录后，点击 "New Project"
-   - 选择 "Deploy from GitHub repo"
-   - 选择您刚创建的仓库：`wechat-rss-aggregator`
-
-3. **等待部署**
-   - Railway 会自动检测并部署您的项目
-   - 等待 3-5 分钟，状态变为 "Active"
-
-4. **生成公开链接**
-   - 点击您的项目
-   - 点击 "Settings"
-   - 找到 "Domains" 部分
-   - 点击 "Generate Domain"
-   - 复制生成的网址（格式：https://xxx.railway.app）
-
-5. **访问您的网站**
-   - 打开刚才复制的网址
-   - 您的网站已经在线运行了！🎉
-
-#### 步骤4：配置RSS源（重要）
-
-在 Railway 上部署后，您需要配置实际的RSS源：
-
-1. 在 GitHub 仓库中编辑 `fetcher.js`
-2. 修改 `RSS_FEEDS` 数组，添加真实的RSS链接
-3. 提交更改
-4. Railway 会自动重新部署（约2-3分钟）
+wechat-rss-aggregator/
+├── public/                # 前端文件
+│   ├── index.html        # 主页
+│   ├── summary.html      # AI摘要详情页
+│   ├── admin.html        # RSS管理后台
+│   ├── app.js            # 前端核心逻辑
+│   └── styles.css        # 样式文件
+├── server.js             # Express服务器
+├── fetcher.js            # RSS抓取模块
+├── summarizer.js         # AI摘要生成器
+├── translator.js         # AI翻译模块（可选）
+├── database.js           # SQLite数据库
+├── rss-manager.js        # RSS源管理
+├── conferences.js        # AI会议数据
+├── package.json          # 项目配置
+└── README.md             # 说明文档
+```
 
 ## 🔧 配置说明
 
-### RSS 源配置
+### RSS源配置
 
-编辑 `fetcher.js` 文件：
-
-```javascript
-const RSS_FEEDS = [
-  {
-    name: '公众号1',
-    url: 'https://rsshub.app/wechat/mp/articles/公众号ID',
-  },
-  {
-    name: '公众号2',
-    url: 'https://your-rss-service.com/feed',
-  }
-];
-```
-
-### 抓取频率调整
-
-默认每小时抓取一次。如需修改，编辑 `server.js`：
+编辑 `rss-manager.js` 添加/删除RSS源：
 
 ```javascript
-// 每小时抓取：'0 * * * *'
-// 每30分钟抓取：'*/30 * * * *'
-// 每天早上8点抓取：'0 8 * * *'
-cron.schedule('0 * * * *', async () => {
-  // 抓取逻辑
-});
-```
-
-## 📊 查看日志
-
-### 本地查看
-
-运行 `npm start` 后，终端会显示日志：
-
-```
-🚀 服务器运行在 http://localhost:3000
-⏰ 定时任务已设置：每小时抓取一次文章
-✅ 初始数据加载完成
-```
-
-### Railway 查看
-
-1. 登录 Railway
-2. 点击您的项目
-3. 点击 "Deployments"
-4. 选择最新的部署
-5. 点击 "View Logs"
-
-您会看到详细的运行日志。
-
-## 🐛 故障排查
-
-### 问题1：Railway 部署失败
-
-**查看错误：**
-1. Railway → Deployments → 点击失败的部署 → View Logs
-
-**常见原因：**
-- 缺少 `package.json`：确保文件已上传
-- Node.js 版本不兼容：确保 `package.json` 中 `engines.node` 为 `>=18.0.0`
-
-**解决方法：**
-- 检查所有文件是否都上传到了 GitHub
-- 确保 `package.json` 格式正确
-
-### 问题2：网站能访问，但没有文章
-
-**原因：** RSS源配置不正确或RSS服务不可用
-
-**解决方法：**
-1. 检查 `fetcher.js` 中的 RSS 链接是否正确
-2. 在浏览器中直接访问RSS链接，看是否能打开
-3. 查看 Railway 日志，搜索 "抓取" 相关信息
-
-### 问题3：手动刷新不工作
-
-**查看浏览器控制台：**
-- 按 F12 打开开发者工具
-- 切换到 "Console" 标签
-- 点击网站上的"刷新"按钮
-- 查看是否有错误信息
-
-### 问题4：本地运行报错 "Cannot find module"
-
-**解决方法：**
-```bash
-# 删除 node_modules 文件夹
-rm -rf node_modules
-
-# 重新安装
-npm install
-```
-
-## 📞 获取帮助
-
-遇到问题？请检查：
-
-1. **Railway 日志**：查看详细错误信息
-2. **浏览器控制台**（F12）：查看前端错误
-3. **RSS 链接**：确保RSS源可访问
-
-## 🎨 自定义样式
-
-所有样式都在 `public/styles.css` 中。
-
-**修改主题颜色：**
-
-```css
-:root {
-  --primary-color: #2563eb;  /* 改为您喜欢的颜色 */
-  --primary-hover: #1d4ed8;
+{ 
+  id: 1, 
+  name: '量子位', 
+  url: 'https://www.qbitai.com/feed', 
+  category: 'ai_news',
+  enabled: true 
 }
 ```
 
-**常用颜色代码：**
-- 蓝色：`#2563eb`（默认）
-- 绿色：`#10b981`
-- 紫色：`#8b5cf6`
-- 橙色：`#f59e0b`
-- 红色：`#ef4444`
+### AI摘要配置
 
-修改后，提交到 GitHub，Railway 会自动更新。
+**启用条件：** 配置 `ANTHROPIC_API_KEY` 环境变量
 
-## 📈 性能优化
+**成本估算：**
+- 单篇文章：约 $0.045 (¥0.32)
+- 每日200篇：约 $9/天 = $270/月
 
-### 数据库清理
+**优化建议：**
+- 只为重要文章生成摘要
+- 使用Haiku模型降低成本90%
+- 限制输入长度为10000字
 
-文章会持续累积，定期清理旧文章：
+## 🎨 主要功能预览
 
-1. 在 Railway 中打开 Terminal（Beta功能）
-2. 或下载数据库文件到本地
-
-执行SQL：
-```sql
--- 删除30天前的文章
-DELETE FROM articles WHERE createdAt < datetime('now', '-30 days');
+### AI自动摘要
+```
+用户点击文章标题
+    ↓
+精美摘要详情页（紫色渐变）
+    ↓
+AI生成800-1000字核心内容
+    ↓
+点击"阅读原文"访问完整文章
 ```
 
-### 限制抓取数量
-
-在 `fetcher.js` 中限制每次抓取的文章数：
-
-```javascript
-const feedData = await parser.parseURL(feed.url);
-const items = feedData.items.slice(0, 10); // 只取前10篇
-
-for (const item of items) {
-  // ...
-}
+### 实时推送
+```
+RSS抓取到新文章
+    ↓
+WebSocket广播通知
+    ↓
+页面顶部显示提醒条
+    ↓
+用户点击刷新查看新内容
 ```
 
-## 🔒 安全建议
+### 管理后台
+```
+访问 /admin.html
+    ↓
+输入密码：admin123
+    ↓
+添加/编辑/删除RSS源
+    ↓
+手动触发抓取
+```
 
-1. **不要暴露敏感信息**：不要在代码中硬编码API密钥
-2. **使用环境变量**：敏感配置使用 Railway 的环境变量功能
-3. **定期更新依赖**：运行 `npm update` 更新依赖包
+## 🔑 环境变量
+
+| 变量名 | 必需 | 说明 |
+|--------|------|------|
+| `PORT` | 否 | 服务器端口（默认3000） |
+| `ANTHROPIC_API_KEY` | 否 | Claude API密钥（启用AI摘要） |
+
+## 📊 API端点
+
+### 公开API
+- `GET /api/articles` - 获取文章列表（分页）
+- `GET /api/article/:id` - 获取文章详情（含摘要）
+- `GET /api/stats` - 获取统计数据
+- `GET /api/conferences` - 获取会议列表
+- `POST /api/fetch` - 手动触发抓取
+
+### 管理API（需密码）
+- `POST /api/admin/verify` - 验证密码
+- `GET /api/admin/feeds` - 获取所有RSS源
+- `POST /api/admin/feeds` - 添加RSS源
+- `PUT /api/admin/feeds/:id` - 更新RSS源
+- `DELETE /api/admin/feeds/:id` - 删除RSS源
+
+## 🛠 技术栈
+
+### 后端
+- **Node.js** + **Express** - Web服务器
+- **SQLite** - 轻量级数据库
+- **RSS Parser** - RSS解析
+- **WebSocket** - 实时推送
+- **Cheerio** - HTML解析
+
+### 前端
+- **原生JavaScript** - 无框架依赖
+- **CSS3** - 现代化样式
+- **Responsive Design** - 响应式布局
+
+### AI服务
+- **Claude Sonnet 4** - 文章摘要生成
+- **Claude Haiku 4** - 翻译（可选）
+
+## 📈 数据统计
+
+- **30+ RSS源** - 覆盖主流AI/IT媒体
+- **15分钟更新** - 自动定时抓取
+- **实时推送** - WebSocket通知
+- **AI摘要** - 自动提炼核心内容
+- **50家大模型厂商** - 全球AI公司地图
+- **200个AI产品** - 量子位智库榜单
+
+## 🤝 贡献指南
+
+欢迎提交Issue和Pull Request！
+
+### 开发流程
+1. Fork本仓库
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建Pull Request
 
 ## 📝 更新日志
 
-### v1.0.0 (2026-02-08)
-- ✅ 初始版本发布
-- ✅ 支持每小时自动抓取
-- ✅ 简约现代UI设计
-- ✅ 搜索和分页功能
-- ✅ Railway一键部署
+### v3.0.0 (2026-02-24)
+- ✅ 新增AI自动摘要功能
+- ✅ 新增量子位AI 100双榜单
+- ✅ 优化摘要详情页设计
+- ✅ 支持智能文章抓取
 
-## 📄 开源协议
+### v2.0.0 (2026-01-22)
+- ✅ 新增AI大模型厂商Tab
+- ✅ 新增AI翻译功能
+- ✅ 新增12个国际RSS源
+- ✅ 优化UI设计
 
-MIT License - 可自由使用和修改
+### v1.0.0 (2025-12-15)
+- ✅ 基础RSS聚合功能
+- ✅ WebSocket实时推送
+- ✅ 分类展示
+- ✅ 管理后台
+
+## 📄 许可证
+
+MIT License
+
+## 🙏 致谢
+
+- RSS源提供方：量子位、机器之心、36氪、OpenAI、Google等
+- AI服务：Anthropic Claude
+- 榜单数据：量子位智库
+
+## 📞 联系方式
+
+- GitHub Issues: [提交问题](https://github.com/你的用户名/wechat-rss-aggregator/issues)
+- 项目主页: [查看详情](https://github.com/你的用户名/wechat-rss-aggregator)
 
 ---
 
-## 🎉 完成！
-
-恭喜！您已成功部署微信公众号文章聚合系统。
-
-**下一步：**
-1. ✅ 配置真实的RSS源
-2. ✅ 自定义主题颜色（可选）
-3. ✅ 分享您的网站链接
-
-**需要帮助？** 
-- 查看 Railway 部署日志
-- 检查浏览器控制台（F12）
-- 回到对话向我提问
-
-祝使用愉快！🚀
+**⭐ 如果这个项目对你有帮助，请给个Star支持一下！**

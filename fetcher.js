@@ -65,6 +65,33 @@ async function fetchFromFeed(feed) {
                 }
               } else if (this.changes > 0) {
                 newCount++;
+                
+                // 异步生成摘要（不阻塞RSS抓取）
+                const insertedId = this.lastID;
+                const { generateSummary } = require('./summarizer');
+                
+                setImmediate(async () => {
+                  try {
+                    const summary = await generateSummary({
+                      id: insertedId,
+                      title: item.title,
+                      link: item.link,
+                      content: item.content || item.description,
+                      description: item.contentSnippet || item.description,
+                      source: feed.name
+                    });
+                    
+                    if (summary) {
+                      db.run(
+                        'UPDATE articles SET summary = ?, summary_generated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                        [summary, insertedId]
+                      );
+                    }
+                  } catch (err) {
+                    console.error('  ⚠️  摘要生成失败:', err.message);
+                  }
+                });
+                
                 resolve();
               } else {
                 skipCount++;

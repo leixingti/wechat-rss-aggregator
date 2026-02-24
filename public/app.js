@@ -370,7 +370,7 @@ function displayArticlesGrouped(articles, targetGrid, targetPagination) {
 
 function generateArticleCard(article) {
   return `
-    <article class="article-card" onclick="openArticle('${escapeHtml(article.link)}')">
+    <article class="article-card" onclick="window.location.href='/summary.html?id=${article.id}'">
       ${article.imageUrl ? `
         <img src="${escapeHtml(article.imageUrl)}" 
              alt="${escapeHtml(article.title)}" 

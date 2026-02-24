@@ -147,6 +147,64 @@ app.get('/api/articles/:id', (req, res) => {
   });
 });
 
+// API: 获取文章详情（用于摘要页面）
+app.get('/api/article/:id', (req, res) => {
+  const articleId = req.params.id;
+  
+  db.get(
+    'SELECT * FROM articles WHERE id = ?',
+    [articleId],
+    (err, article) => {
+      if (err) {
+        console.error('❌ 查询文章失败:', err);
+        return res.status(500).json({ error: '查询失败' });
+      }
+      
+      if (!article) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+      
+      res.json(article);
+    }
+  );
+});
+
+// API: 手动生成摘要
+app.post('/api/article/:id/summary', async (req, res) => {
+  const articleId = req.params.id;
+  const { generateSummary } = require('./summarizer');
+  
+  db.get('SELECT * FROM articles WHERE id = ?', [articleId], async (err, article) => {
+    if (err || !article) {
+      return res.status(404).json({ error: '文章不存在' });
+    }
+    
+    try {
+      // 生成摘要
+      const summary = await generateSummary(article);
+      
+      if (summary) {
+        // 保存到数据库
+        db.run(
+          'UPDATE articles SET summary = ?, summary_generated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [summary, articleId],
+          (err) => {
+            if (err) {
+              return res.status(500).json({ error: '保存失败' });
+            }
+            res.json({ success: true, summary });
+          }
+        );
+      } else {
+        res.status(500).json({ error: '摘要生成失败' });
+      }
+    } catch (error) {
+      console.error('❌ 摘要生成异常:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
 // API: 手动触发抓取
 app.post('/api/fetch', async (req, res) => {
   try {

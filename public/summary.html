@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">文章摘要</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2.5rem 2rem;
+      position: relative;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: white;
+      text-decoration: none;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      background: rgba(255, 255, 255, 0.2);
+      transition: all 0.3s;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateX(-3px);
+    }
+
+    .article-title {
+      font-size: 2rem;
+      line-height: 1.4;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .article-meta {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      opacity: 0.95;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .content {
+      padding: 2.5rem;
+    }
+
+    .summary-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.5rem 1.2rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .summary-text {
+      font-size: 1.05rem;
+      line-height: 1.9;
+      color: #2d3748;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .summary-text h3 {
+      font-size: 1.3rem;
+      color: #1a202c;
+      margin: 2rem 0 1rem;
+      font-weight: 600;
+    }
+
+    .summary-text h4 {
+      font-size: 1.15rem;
+      color: #2d3748;
+      margin: 1.5rem 0 0.8rem;
+      font-weight: 600;
+    }
+
+    .summary-text p {
+      margin-bottom: 1rem;
+    }
+
+    .summary-text ul, .summary-text ol {
+      margin: 1rem 0 1rem 2rem;
+    }
+
+    .summary-text li {
+      margin-bottom: 0.5rem;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+      margin: 2.5rem 0;
+    }
+
+    .original-link-section {
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      padding: 2rem;
+      border-radius: 15px;
+      margin-top: 2.5rem;
+    }
+
+    .original-link-title {
+      font-size: 1.1rem;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .original-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.9rem 1.8rem;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .original-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #f3f4f6;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: #e53e3e;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem 0.5rem;
+      }
+
+      .container {
+        border-radius: 12px;
+      }
+
+      .header {
+        padding: 1.5rem 1.2rem;
+      }
+
+      .article-title {
+        font-size: 1.5rem;
+      }
+
+      .content {
+        padding: 1.5rem;
+      }
+
+      .summary-text {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>正在加载摘要...</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;">
+      <h2>加载失败</h2>
+      <p id="errorMessage"></p>
+    </div>
+
+    <div id="content" style="display: none;">
+      <div class="header">
+        <a href="/" class="back-btn">← 返回列表</a>
+        <h1 class="article-title" id="articleTitle"></h1>
+        <div class="article-meta">
+          <div class="meta-item">
+            <span>📅</span>
+            <span id="articleDate"></span>
+          </div>
+          <div class="meta-item">
+            <span>📰</span>
+            <span id="articleSource"></span>
+          </div>
+          <div class="meta-item">
+            <span>✍️</span>
+            <span id="articleAuthor"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="summary-badge">🤖 AI 智能摘要</div>
+        <div class="summary-text" id="summaryText"></div>
+
+        <div class="divider"></div>
+
+        <div class="original-link-section">
+          <div class="original-link-title">📖 想了解更多细节？</div>
+          <a id="originalLink" href="#" target="_blank" class="original-link">
+            阅读原文 →
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 从URL获取文章ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const articleId = urlParams.get('id');
+
+    if (!articleId) {
+      showError('缺少文章ID参数');
+    } else {
+      loadArticle(articleId);
+    }
+
+    async function loadArticle(id) {
+      try {
+        const response = await fetch(`/api/article/${id}`);
+        
+        if (!response.ok) {
+          throw new Error('文章不存在或加载失败');
+        }
+
+        const article = await response.json();
+        displayArticle(article);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function displayArticle(article) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      // 设置页面标题
+      document.getElementById('pageTitle').textContent = article.title;
+      document.getElementById('articleTitle').textContent = article.title;
+
+      // 设置元信息
+      const date = new Date(article.pubDate);
+      document.getElementById('articleDate').textContent = date.toLocaleDateString('zh-CN');
+      document.getElementById('articleSource').textContent = article.source || '未知来源';
+      document.getElementById('articleAuthor').textContent = article.author || '未知作者';
+
+      // 设置摘要内容
+      const summaryDiv = document.getElementById('summaryText');
+      if (article.summary) {
+        // 将摘要中的Markdown格式转换为HTML
+        const formattedSummary = formatSummary(article.summary);
+        summaryDiv.innerHTML = formattedSummary;
+      } else {
+        summaryDiv.innerHTML = '<p style="color: #718096; font-style: italic;">暂无AI摘要，正在生成中...</p>';
+      }
+
+      // 设置原文链接
+      document.getElementById('originalLink').href = article.link;
+    }
+
+    function formatSummary(text) {
+      // 简单的Markdown转HTML（支持标题、段落、列表）
+      return text
+        .split('\n')
+        .map(line => {
+          line = line.trim();
+          if (!line) return '';
+          
+          // 标题
+          if (line.startsWith('### ')) {
+            return `<h4>${line.substring(4)}</h4>`;
+          }
+          if (line.startsWith('## ')) {
+            return `<h3>${line.substring(3)}</h3>`;
+          }
+          
+          // 列表
+          if (line.startsWith('- ') || line.startsWith('* ')) {
+            return `<li>${line.substring(2)}</li>`;
+          }
+          if (/^\d+\.\s/.test(line)) {
+            return `<li>${line.replace(/^\d+\.\s/, '')}</li>`;
+          }
+          
+          // 普通段落
+          return `<p>${line}</p>`;
+        })
+        .join('\n')
+        .replace(/(<li>.*?<\/li>\n?)+/g, '<ul>$&</ul>');
+    }
+
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('errorMessage').textContent = message;
+    }
+  </script>
+</body>
+</html>
