@@ -99,9 +99,9 @@ function addCategoryColumn() {
       console.error('❌ 检查表结构失败:', err.message);
       return;
     }
-    
+
     const hasCategory = rows.some(row => row.name === 'category');
-    
+
     if (!hasCategory) {
       console.log('🔄 添加category字段...');
       db.run(`ALTER TABLE articles ADD COLUMN category TEXT DEFAULT 'ai_news'`, (err) => {
@@ -111,7 +111,136 @@ function addCategoryColumn() {
           console.log('✅ category字段已添加');
         }
       });
+    } else {
+      // category字段已存在，检查是否需要恢复备份
+      checkAndRestoreBackup();
     }
+  });
+}
+
+// 检查是否需要恢复备份数据库
+function checkAndRestoreBackup() {
+  db.get("SELECT COUNT(*) as count FROM articles", (err, row) => {
+    if (err) {
+      console.warn('⚠️ 无法检查数据库内容:', err.message);
+      return;
+    }
+
+    const articleCount = row ? row.count : 0;
+
+    // 如果数据库为空，尝试从备份恢复
+    if (articleCount === 0) {
+      const backupPath = path.join(__dirname, 'backups', 'articles-backup.db');
+
+      if (fs.existsSync(backupPath)) {
+        console.log('🔄 检测到备份文件，正在恢复数据...');
+        restoreFromBackup(backupPath);
+      } else {
+        console.log('📭 数据库为空，未找到备份文件');
+      }
+    } else {
+      console.log(`✅ 数据库已包含 ${articleCount} 篇文章`);
+    }
+  });
+}
+
+// 从备份文件恢复数据库
+function restoreFromBackup(backupPath) {
+  const exec = require('child_process').execFile;
+  const sqlite3Path = process.env.SQLITE3_PATH || 'sqlite3';
+
+  // 方案 1: 使用 Node.js 的 sqlite3 模块直接复制
+  const backupDb = new sqlite3.Database(backupPath, (err) => {
+    if (err) {
+      console.error('❌ 无法打开备份数据库:', err.message);
+      return;
+    }
+
+    console.log('📂 正在扫描备份数据库...');
+
+    // 先获取备份数据库中的文章数量
+    backupDb.get("SELECT COUNT(*) as count FROM articles", (err, row) => {
+      if (err) {
+        console.error('❌ 无法读取备份数据库:', err.message);
+        backupDb.close();
+        return;
+      }
+
+      const backupCount = row ? row.count : 0;
+      console.log(`📊 备份文件包含 ${backupCount} 篇文章`);
+
+      // 使用 INSERT OR IGNORE 避免重复（如果有重复的 link）
+      backupDb.all('SELECT * FROM articles', (err, rows) => {
+        if (err) {
+          console.error('❌ 无法读取备份数据:', err.message);
+          backupDb.close();
+          return;
+        }
+
+        if (!rows || rows.length === 0) {
+          console.warn('⚠️ 备份数据库为空');
+          backupDb.close();
+          return;
+        }
+
+        // 开始插入数据
+        let insertedCount = 0;
+        let skippedCount = 0;
+
+        db.run('BEGIN TRANSACTION');
+
+        const insertRow = (index) => {
+          if (index >= rows.length) {
+            // 所有行都已处理
+            db.run('COMMIT', (err) => {
+              if (err) {
+                console.error('❌ 提交事务失败:', err.message);
+              } else {
+                console.log(`✅ 数据恢复完成！已插入 ${insertedCount} 篇文章（跳过 ${skippedCount} 篇重复）`);
+              }
+              backupDb.close();
+            });
+            return;
+          }
+
+          const row = rows[index];
+          const sql = `
+            INSERT OR IGNORE INTO articles
+            (title, link, description, content, pubDate, author, source, category, imageUrl, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+
+          db.run(sql, [
+            row.title,
+            row.link,
+            row.description,
+            row.content,
+            row.pubDate,
+            row.author,
+            row.source,
+            row.category || 'ai_news',
+            row.imageUrl,
+            row.createdAt || new Date().toISOString()
+          ], function(err) {
+            if (err) {
+              console.error(`❌ 插入第 ${index + 1} 行失败:`, err.message);
+              skippedCount++;
+            } else if (this.changes > 0) {
+              insertedCount++;
+              if (insertedCount % 100 === 0) {
+                console.log(`⏳ 已处理 ${insertedCount} 篇文章...`);
+              }
+            } else {
+              skippedCount++; // INSERT OR IGNORE 被忽略
+            }
+
+            insertRow(index + 1);
+          });
+        };
+
+        insertRow(0);
+      });
+    });
   });
 }
 
