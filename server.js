@@ -103,7 +103,7 @@ global.broadcastNewArticles = broadcastNewArticles;
 // 中间件
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 健康检查端点
 app.get('/health', (req, res) => {
