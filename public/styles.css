@@ -177,31 +177,32 @@ body {
 }
 
 .stat-card {
-  background-color: var(--bg-card);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   padding: 1.5rem;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+  border: none;
   text-align: center;
   transition: all 0.3s;
   min-width: 150px;
+  color: white;
 }
 
 .stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+  transform: translateY(-4px);
 }
 
 .stat-label {
   font-size: 1.3125rem; /* 0.875rem * 1.5 = 1.3125rem (+50%) */
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.5rem;
 }
 
 .stat-value {
   font-size: 2.8125rem; /* 1.875rem * 1.5 = 2.8125rem (+50%) */
   font-weight: 700;
-  color: var(--primary-color);
+  color: white;
 }
 
 /* 加载和错误状态 */
