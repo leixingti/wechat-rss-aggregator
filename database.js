@@ -51,6 +51,20 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('❌ 数据库连接失败:', err.message);
   } else {
     console.log('✅ 数据库连接成功');
+
+    // 启用 WAL 模式以支持多进程并发访问
+    db.run('PRAGMA journal_mode=WAL', (err) => {
+      if (err) {
+        console.warn('⚠️  WAL 模式启用失败:', err.message);
+      } else {
+        console.log('✅ WAL 模式已启用（支持多进程并发）');
+      }
+    });
+
+    // 配置数据库超时和其他并发优化
+    db.configure('busyTimeout', 10000); // 10秒超时
+    db.run('PRAGMA synchronous=NORMAL'); // 性能优化（仍保持数据安全）
+
     initDatabase();
   }
 });
