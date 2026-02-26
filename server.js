@@ -376,14 +376,19 @@ server.listen(PORT, HOST, () => {
   log.info(`健康检查：http://${HOST}:${PORT}/health`);
   log.info(`当前WebSocket连接数: 0`);
 
-  // 延迟启动，确保数据库已准备好
+  // 延迟启动初始化抓取，给应用充足的初始化时间
+  // Railway 环境下需要更长的延迟（10秒）确保应用完全启动
+  const initialFetchDelay = process.env.NODE_ENV === 'production' ? 10000 : 5000;
+  log.info(`将在 ${initialFetchDelay}ms 后启动初始 RSS 抓取...`);
+
   setTimeout(() => {
+    log.info('🔄 启动初始 RSS 抓取（限制并发为 3）...');
     fetchArticles().then(() => {
       log.success('初始数据加载完成');
     }).catch(err => {
       log.error('初始数据加载失败:', err);
     });
-  }, 2000);
+  }, initialFetchDelay);
 });
 
 // 优雅关闭处理

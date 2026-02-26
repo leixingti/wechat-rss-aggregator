@@ -3,6 +3,7 @@ const db = require('./database');
 const { getRSSFeeds } = require('./rss-manager');
 
 const parser = new Parser({
+  timeout: 15000, // 减少单个源的超时时间
   customFields: {
     item: [
       ['content:encoded', 'content'],
@@ -87,15 +88,30 @@ async function fetchFromFeed(feed) {
 }
 
 /**
+ * 有限并发执行（防止资源耗尽）
+ */
+async function fetchWithLimit(feeds, limit = 3) {
+  const results = [];
+  for (let i = 0; i < feeds.length; i += limit) {
+    const batch = feeds.slice(i, i + limit);
+    const batchResults = await Promise.allSettled(
+      batch.map(feed => fetchFromFeed(feed))
+    );
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+/**
  * 抓取所有RSS源的文章
  */
 async function fetchArticles() {
   console.log('🚀 开始抓取文章...');
   const startTime = Date.now();
-  
+
   // 动态获取RSS源列表
   const RSS_FEEDS = getActiveFeeds();
-  
+
   if (RSS_FEEDS.length === 0) {
     console.log('⚠️  没有配置RSS源');
     return {
@@ -105,15 +121,14 @@ async function fetchArticles() {
       duration: 0
     };
   }
-  
+
   let totalNew = 0;
   let totalSkip = 0;
   const errors = [];
 
-  // 并发抓取所有RSS源
-  const results = await Promise.allSettled(
-    RSS_FEEDS.map(feed => fetchFromFeed(feed))
-  );
+  // 有限并发抓取 RSS 源（限制为 3 个同时请求）
+  console.log(`📊 RSS源数量: ${RSS_FEEDS.length}，限制并发数: 3`);
+  const results = await fetchWithLimit(RSS_FEEDS, 3);
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
