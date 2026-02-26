@@ -12,7 +12,7 @@ const rssManager = require('./rss-manager');
 // 环境变量配置
 require('dotenv').config();
 
-// 日志配置
+// 日志系统
 const LOG_DIR = process.env.LOG_DIR || path.join(process.env.HOME || '/tmp', '.wechat-rss/logs');
 if (!fs.existsSync(LOG_DIR)) {
   try {
@@ -37,7 +37,7 @@ log.info(`日志目录: ${LOG_DIR}`);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || 'localhost';
 
 log.info(`监听地址: ${HOST}:${PORT}`);
 
@@ -174,64 +174,6 @@ app.get('/api/articles/:id', (req, res) => {
       return res.status(404).json({ error: '文章未找到' });
     }
     res.json(row);
-  });
-});
-
-// API: 获取文章详情（用于摘要页面）
-app.get('/api/article/:id', (req, res) => {
-  const articleId = req.params.id;
-  
-  db.get(
-    'SELECT * FROM articles WHERE id = ?',
-    [articleId],
-    (err, article) => {
-      if (err) {
-        console.error('❌ 查询文章失败:', err);
-        return res.status(500).json({ error: '查询失败' });
-      }
-      
-      if (!article) {
-        return res.status(404).json({ error: '文章不存在' });
-      }
-      
-      res.json(article);
-    }
-  );
-});
-
-// API: 手动生成摘要
-app.post('/api/article/:id/summary', async (req, res) => {
-  const articleId = req.params.id;
-  const { generateSummary } = require('./summarizer');
-  
-  db.get('SELECT * FROM articles WHERE id = ?', [articleId], async (err, article) => {
-    if (err || !article) {
-      return res.status(404).json({ error: '文章不存在' });
-    }
-    
-    try {
-      // 生成摘要
-      const summary = await generateSummary(article);
-      
-      if (summary) {
-        // 保存到数据库
-        db.run(
-          'UPDATE articles SET summary = ?, summary_generated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [summary, articleId],
-          (err) => {
-            if (err) {
-              return res.status(500).json({ error: '保存失败' });
-            }
-            res.json({ success: true, summary });
-          }
-        );
-      } else {
-        res.status(500).json({ error: '摘要生成失败' });
-      }
-    } catch (error) {
-      console.error('❌ 摘要生成异常:', error);
-      res.status(500).json({ error: error.message });
-    }
   });
 });
 
@@ -417,12 +359,12 @@ app.get('*', (req, res) => {
 
 // 定时任务：每15分钟抓取一次
 cron.schedule('*/15 * * * *', async () => {
-  log.info(`定时任务触发 - ${new Date().toLocaleString('zh-CN')}`);
+  console.log('⏰ 定时任务触发 -', new Date().toLocaleString('zh-CN'));
   try {
     await fetchArticles();
-    log.success(`定时抓取完成`);
+    console.log('✅ 定时抓取完成');
   } catch (error) {
-    log.error(`定时抓取失败:`, error);
+    console.error('❌ 定时抓取失败:', error);
   }
 });
 
@@ -434,12 +376,12 @@ server.listen(PORT, HOST, () => {
   log.info(`健康检查：http://${HOST}:${PORT}/health`);
   log.info(`当前WebSocket连接数: 0`);
 
-  // 启动时立即抓取一次（延迟2秒，确保数据库就绪）
+  // 延迟启动，确保数据库已准备好
   setTimeout(() => {
     fetchArticles().then(() => {
-      log.success(`初始数据加载完成`);
+      log.success('初始数据加载完成');
     }).catch(err => {
-      log.error(`初始数据加载失败:`, err);
+      log.error('初始数据加载失败:', err);
     });
   }, 2000);
 });
@@ -467,12 +409,12 @@ process.on('SIGINT', () => {
   });
 });
 
-// 未捕获的异常处理
-process.on('uncaughtException', (error) => {
-  log.error('未捕获的异常:', error);
+// 未捕获异常处理
+process.on('uncaughtException', (err) => {
+  log.error('未捕获的异常:', err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  log.error('未处理的 Promise 拒绝:', reason);
+  log.error('未处理的 Promise 拒绝:', new Error(String(reason)));
 });

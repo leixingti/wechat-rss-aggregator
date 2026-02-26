@@ -1,14 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
-// RSS配置文件路径 - 使用持久化存储
+// RSS配置文件路径配置（支持云服务器持久化存储）
+// 优先级：环境变量 > /app/data > /data > 项目目录
 const getConfigDir = () => {
-  // 优先级：CONFIG_PATH env > /app/data > /data > 项目目录
+  // 1. 检查环境变量
   if (process.env.CONFIG_PATH) {
     return process.env.CONFIG_PATH;
   }
 
-  const dataDirs = ['/app/data', '/data', process.env.HOME + '/.wechat-rss'];
+  // 2. 检查云平台数据目录
+  const dataDirs = ['/app/data', '/data'];
   for (const dir of dataDirs) {
     if (fs.existsSync(dir) || process.env.NODE_ENV === 'production') {
       if (!fs.existsSync(dir)) {
@@ -22,11 +24,22 @@ const getConfigDir = () => {
     }
   }
 
+  // 3. 默认使用项目目录
   return __dirname;
 };
 
 const DATA_DIR = getConfigDir();
 const CONFIG_FILE = path.join(DATA_DIR, 'rss-config.json');
+
+// 确保目录存在
+if (!fs.existsSync(DATA_DIR)) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    console.log(`📁 创建配置目录: ${DATA_DIR}`);
+  } catch (err) {
+    console.error(`❌ 无法创建配置目录: ${err.message}`);
+  }
+}
 
 console.log(`📍 RSS配置路径: ${CONFIG_FILE}`);
 
