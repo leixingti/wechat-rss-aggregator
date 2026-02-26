@@ -37,7 +37,8 @@ log.info(`日志目录: ${LOG_DIR}`);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || 'localhost';
+// Railway 需要绑定到 0.0.0.0 才能让外部流量访问
+const HOST = process.env.HOST || '0.0.0.0';
 
 log.info(`监听地址: ${HOST}:${PORT}`);
 
