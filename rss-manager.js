@@ -2,8 +2,33 @@ const fs = require('fs');
 const path = require('path');
 
 // RSS配置文件路径 - 使用持久化存储
-const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : __dirname;
+const getConfigDir = () => {
+  // 优先级：CONFIG_PATH env > /app/data > /data > 项目目录
+  if (process.env.CONFIG_PATH) {
+    return process.env.CONFIG_PATH;
+  }
+
+  const dataDirs = ['/app/data', '/data', process.env.HOME + '/.wechat-rss'];
+  for (const dir of dataDirs) {
+    if (fs.existsSync(dir) || process.env.NODE_ENV === 'production') {
+      if (!fs.existsSync(dir)) {
+        try {
+          fs.mkdirSync(dir, { recursive: true });
+        } catch (e) {
+          console.warn(`⚠️ 无法创建目录 ${dir}:`, e.message);
+        }
+      }
+      return dir;
+    }
+  }
+
+  return __dirname;
+};
+
+const DATA_DIR = getConfigDir();
 const CONFIG_FILE = path.join(DATA_DIR, 'rss-config.json');
+
+console.log(`📍 RSS配置路径: ${CONFIG_FILE}`);
 
 // 默认配置（包含分类）
 const DEFAULT_CONFIG = {

@@ -4,12 +4,42 @@ const cron = require('node-cron');
 const path = require('path');
 const http = require('http');
 const WebSocket = require('ws');
+const fs = require('fs');
 const db = require('./database');
 const { fetchArticles } = require('./fetcher');
 const rssManager = require('./rss-manager');
 
+// 环境变量配置
+require('dotenv').config();
+
+// 日志配置
+const LOG_DIR = process.env.LOG_DIR || path.join(process.env.HOME || '/tmp', '.wechat-rss/logs');
+if (!fs.existsSync(LOG_DIR)) {
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+  } catch (e) {
+    console.warn(`⚠️ 无法创建日志目录: ${e.message}`);
+  }
+}
+
+// 日志函数
+const log = {
+  info: (msg) => console.log(`[${new Date().toISOString()}] ℹ️  ${msg}`),
+  success: (msg) => console.log(`[${new Date().toISOString()}] ✅ ${msg}`),
+  warn: (msg) => console.warn(`[${new Date().toISOString()}] ⚠️  ${msg}`),
+  error: (msg, err) => console.error(`[${new Date().toISOString()}] ❌ ${msg}`, err ? err.message : '')
+};
+
+log.info(`==== 应用启动 ====`);
+log.info(`Node.js 版本: ${process.version}`);
+log.info(`环境: ${process.env.NODE_ENV || 'development'}`);
+log.info(`日志目录: ${LOG_DIR}`);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+log.info(`监听地址: ${HOST}:${PORT}`);
 
 // 创建HTTP服务器
 const server = http.createServer(app);
@@ -387,27 +417,62 @@ app.get('*', (req, res) => {
 
 // 定时任务：每15分钟抓取一次
 cron.schedule('*/15 * * * *', async () => {
-  console.log('⏰ 定时任务触发 -', new Date().toLocaleString('zh-CN'));
+  log.info(`定时任务触发 - ${new Date().toLocaleString('zh-CN')}`);
   try {
     await fetchArticles();
-    console.log('✅ 定时抓取完成');
+    log.success(`定时抓取完成`);
   } catch (error) {
-    console.error('❌ 定时抓取失败:', error);
+    log.error(`定时抓取失败:`, error);
   }
 });
 
 // 启动服务器
-server.listen(PORT, () => {
-  console.log(`🚀 HTTP服务器运行在 http://localhost:${PORT}`);
-  console.log(`🔌 WebSocket服务器运行在 ws://localhost:${PORT}`);
-  console.log(`⏰ 定时任务已设置：每15分钟抓取一次文章`);
-  console.log(`📊 健康检查：http://localhost:${PORT}/health`);
-  console.log(`👥 当前WebSocket连接数: 0`);
-  
-  // 启动时立即抓取一次
-  fetchArticles().then(() => {
-    console.log('✅ 初始数据加载完成');
-  }).catch(err => {
-    console.error('❌ 初始数据加载失败:', err.message);
+server.listen(PORT, HOST, () => {
+  log.success(`HTTP服务器运行在 http://${HOST}:${PORT}`);
+  log.success(`WebSocket服务器运行在 ws://${HOST}:${PORT}`);
+  log.info(`定时任务已设置：每15分钟抓取一次文章`);
+  log.info(`健康检查：http://${HOST}:${PORT}/health`);
+  log.info(`当前WebSocket连接数: 0`);
+
+  // 启动时立即抓取一次（延迟2秒，确保数据库就绪）
+  setTimeout(() => {
+    fetchArticles().then(() => {
+      log.success(`初始数据加载完成`);
+    }).catch(err => {
+      log.error(`初始数据加载失败:`, err);
+    });
+  }, 2000);
+});
+
+// 优雅关闭处理
+process.on('SIGTERM', () => {
+  log.warn('收到 SIGTERM 信号，开始优雅关闭...');
+  server.close(() => {
+    log.success('HTTP 服务器已关闭');
+    db.close(() => {
+      log.success('数据库连接已关闭');
+      process.exit(0);
+    });
   });
+});
+
+process.on('SIGINT', () => {
+  log.warn('收到 SIGINT 信号，开始优雅关闭...');
+  server.close(() => {
+    log.success('HTTP 服务器已关闭');
+    db.close(() => {
+      log.success('数据库连接已关闭');
+      process.exit(0);
+    });
+  });
+});
+
+// 未捕获的异常处理
+process.on('uncaughtException', (error) => {
+  log.error('未捕获的异常:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('未处理的 Promise 拒绝:', reason);
 });

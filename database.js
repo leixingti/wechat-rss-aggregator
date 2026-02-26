@@ -1,8 +1,51 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
+
+// 数据库路径配置（支持云服务器持久化存储）
+// 优先级：DB_PATH env > /app/data > /data > 项目目录
+const getDbPath = () => {
+  // 1. 检查环境变量
+  if (process.env.DB_PATH) {
+    return process.env.DB_PATH;
+  }
+
+  // 2. 检查 Docker/云平台数据目录
+  const dataDirs = ['/app/data', '/data', process.env.HOME + '/.wechat-rss'];
+  for (const dir of dataDirs) {
+    if (fs.existsSync(dir) || process.env.NODE_ENV === 'production') {
+      const dirPath = dir;
+      if (!fs.existsSync(dirPath)) {
+        try {
+          fs.mkdirSync(dirPath, { recursive: true });
+        } catch (e) {
+          console.warn(`⚠️ 无法创建目录 ${dirPath}:`, e.message);
+        }
+      }
+      return path.join(dirPath, 'articles.db');
+    }
+  }
+
+  // 3. 默认使用项目目录
+  return path.join(__dirname, 'articles.db');
+};
+
+const dbPath = getDbPath();
+
+// 确保目录存在
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  try {
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log(`📁 创建数据库目录: ${dbDir}`);
+  } catch (err) {
+    console.error(`❌ 无法创建数据库目录: ${err.message}`);
+  }
+}
+
+console.log(`📍 数据库路径: ${dbPath}`);
 
 // 创建或连接数据库
-const dbPath = path.join(__dirname, 'articles.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('❌ 数据库连接失败:', err.message);
