@@ -2,6 +2,40 @@ const Parser = require('rss-parser');
 const db = require('./database');
 const { getRSSFeeds } = require('./rss-manager');
 
+// AI 相关关键词（用于 it_news 来源的文章自动分类）
+const AI_KEYWORDS = [
+  'AI', 'A.I.', '人工智能', '机器学习', '深度学习', '大模型', '大语言模型',
+  'LLM', 'GPT', 'ChatGPT', 'Claude', 'Gemini', 'Llama', 'Mistral',
+  '神经网络', '自然语言处理', 'NLP', '计算机视觉', 'CV', '强化学习',
+  'OpenAI', 'Anthropic', 'DeepMind', 'Google AI', 'Meta AI', 'Hugging Face',
+  '智谱', '文心', '通义', '混元', '星火', '豆包', 'Kimi', '月之暗面',
+  'AGI', 'AIGC', '生成式', '扩散模型', 'Transformer', '向量', 'embedding',
+  '算法', '训练', '推理', '微调', 'fine-tune', 'RAG', '智能体', 'Agent',
+  '语言模型', '视觉模型', '多模态', 'stable diffusion', 'midjourney',
+  '机器人', '自动驾驶', '无人驾驶', '具身智能'
+];
+
+const AI_KEYWORDS_LOWER = AI_KEYWORDS.map(k => k.toLowerCase());
+
+/**
+ * 判断文章是否属于 AI 相关内容
+ */
+function isAIRelated(title, description) {
+  const text = ((title || '') + ' ' + (description || '')).toLowerCase();
+  return AI_KEYWORDS_LOWER.some(kw => text.includes(kw));
+}
+
+/**
+ * 根据来源分类和文章内容确定最终分类
+ * it_news 来源中的 AI 相关文章自动归入 ai_news
+ */
+function resolveCategory(feedCategory, title, description) {
+  if (feedCategory === 'it_news' && isAIRelated(title, description)) {
+    return 'ai_news';
+  }
+  return feedCategory || 'ai_news';
+}
+
 const parser = new Parser({
   timeout: 15000, // 减少单个源的超时时间
   customFields: {
@@ -53,7 +87,7 @@ async function fetchFromFeed(feed) {
               item.pubDate || new Date().toISOString(),
               item.creator || item.author || '未知作者',
               feed.name,
-              feed.category || 'ai_news',
+              resolveCategory(feed.category, item.title, item.contentSnippet || item.description),
               imageUrl
             ],
             function(err) {
