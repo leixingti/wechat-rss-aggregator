@@ -50,126 +50,126 @@ const DEFAULT_CONFIG = {
     {
       id: '1',
       name: 'WAIC',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3201788143.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3201788143.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '2',
       name: '机器之心',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3098132220.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3098132220.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '3',
       name: '量子位',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3271041950.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3271041950.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '4',
       name: 'AI前线',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3236757533.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3236757533.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '5',
       name: '新智元',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3073282833.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3073282833.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '6',
       name: '智能涌现',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3582835969.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3582835969.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '7',
       name: 'AI信息Gap',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3903631794.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3903631794.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '8',
       name: 'APPSO',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_2392024520.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_2392024520.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '9',
       name: 'AI特大号',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3933528830.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3933528830.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '10',
       name: 'AI前线',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3554086560.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3554086560.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '11',
       name: '硅星人Pro',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3926568365.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3926568365.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '12',
       name: '甲子光年',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3599245772.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3599245772.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '13',
       name: '极客公园',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_1304308441.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_1304308441.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '14',
       name: 'AI公众号14',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3223096120.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3223096120.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '15',
       name: 'AI公众号15',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3207765945.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3207765945.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '16',
       name: 'AI公众号16',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3900464567.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3900464567.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '17',
       name: 'AI公众号17',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3233554320.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3233554320.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '18',
       name: 'AI公众号18',
-      url: 'https://we-mp-rss-production-fcb0.up.railway.app/feed/MP_WXS_3081486433.rss',
+      url: 'http://101.36.118.157/feed/MP_WXS_3081486433.rss',
       enabled: true,
       category: 'ai_news'
     },
