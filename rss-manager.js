@@ -50,126 +50,126 @@ const DEFAULT_CONFIG = {
     {
       id: '1',
       name: 'WAIC',
-      url: 'http://101.36.118.157/feed/MP_WXS_3201788143.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3201788143.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '2',
       name: '机器之心',
-      url: 'http://101.36.118.157/feed/MP_WXS_3098132220.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3098132220.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '3',
       name: '量子位',
-      url: 'http://101.36.118.157/feed/MP_WXS_3271041950.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3271041950.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '4',
       name: 'AI前线',
-      url: 'http://101.36.118.157/feed/MP_WXS_3236757533.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3236757533.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '5',
       name: '新智元',
-      url: 'http://101.36.118.157/feed/MP_WXS_3073282833.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3073282833.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '6',
       name: '世界人工智能大会',
-      url: 'http://101.36.118.157/feed/MP_WXS_3582835969.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3582835969.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '7',
       name: 'AI信息Gap',
-      url: 'http://101.36.118.157/feed/MP_WXS_3903631794.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3903631794.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '8',
       name: 'APPSO',
-      url: 'http://101.36.118.157/feed/MP_WXS_2392024520.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_2392024520.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '9',
       name: 'AI特大号',
-      url: 'http://101.36.118.157/feed/MP_WXS_3933528830.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3933528830.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '10',
       name: 'AI前线',
-      url: 'http://101.36.118.157/feed/MP_WXS_3554086560.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3554086560.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '11',
       name: '硅星人Pro',
-      url: 'http://101.36.118.157/feed/MP_WXS_3926568365.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3926568365.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '12',
       name: '甲子光年',
-      url: 'http://101.36.118.157/feed/MP_WXS_3599245772.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3599245772.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '13',
       name: '极客公园',
-      url: 'http://101.36.118.157/feed/MP_WXS_1304308441.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_1304308441.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '14',
       name: '数字生命卡兹克',
-      url: 'http://101.36.118.157/feed/MP_WXS_3223096120.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3223096120.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '15',
       name: '夕小瑶科技说',
-      url: 'http://101.36.118.157/feed/MP_WXS_3207765945.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3207765945.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '16',
       name: '智能涌现',
-      url: 'http://101.36.118.157/feed/MP_WXS_3900464567.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3900464567.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '17',
       name: '张张讲AI',
-      url: 'http://101.36.118.157/feed/MP_WXS_3233554320.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3233554320.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '18',
       name: '智东西',
-      url: 'http://101.36.118.157/feed/MP_WXS_3081486433.rss',
+      url: 'http://43.167.164.233:8080/feed/MP_WXS_3081486433.rss',
       enabled: true,
       category: 'ai_news'
     },
