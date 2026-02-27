@@ -84,7 +84,7 @@ const DEFAULT_CONFIG = {
     },
     {
       id: '6',
-      name: '智能涌现',
+      name: '世界人工智能大会',
       url: 'http://101.36.118.157/feed/MP_WXS_3582835969.rss',
       enabled: true,
       category: 'ai_news'
@@ -140,35 +140,35 @@ const DEFAULT_CONFIG = {
     },
     {
       id: '14',
-      name: 'AI公众号14',
+      name: '数字生命卡兹克',
       url: 'http://101.36.118.157/feed/MP_WXS_3223096120.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '15',
-      name: 'AI公众号15',
+      name: '夕小瑶科技说',
       url: 'http://101.36.118.157/feed/MP_WXS_3207765945.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '16',
-      name: 'AI公众号16',
+      name: '智能涌现',
       url: 'http://101.36.118.157/feed/MP_WXS_3900464567.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '17',
-      name: 'AI公众号17',
+      name: '张张讲AI',
       url: 'http://101.36.118.157/feed/MP_WXS_3233554320.rss',
       enabled: true,
       category: 'ai_news'
     },
     {
       id: '18',
-      name: 'AI公众号18',
+      name: '智东西',
       url: 'http://101.36.118.157/feed/MP_WXS_3081486433.rss',
       enabled: true,
       category: 'ai_news'
@@ -235,7 +235,7 @@ const DEFAULT_CONFIG = {
       id: '27',
       name: 'Stability AI',
       url: 'https://stability.ai/blog?format=rss',
-      enabled: true,
+      enabled: false,
       category: 'ai_news'
     },
     {
