@@ -15,7 +15,7 @@ async function generateQianwenSummary(article) {
   // 清理 HTML 标签，截取前 3000 字
   const cleanContent = rawContent.replace(/<[^>]+>/g, '').trim().substring(0, 3000);
 
-  const prompt = `请对以下文章生成一段500字以内的核心内容摘要，用中文输出，重点提炼关键信息、核心观点和重要数据，语言简洁专业：\n\n标题：${article.title}\n\n内容：${cleanContent || '（无正文，请仅根据标题推断摘要）'}`;
+  const prompt = `请对以下文章生成一段1000字以内的核心内容摘要，用中文输出，重点提炼关键信息、核心观点和重要数据，语言简洁专业：\n\n标题：${article.title}\n\n内容：${cleanContent || '（无正文，请仅根据标题推断摘要）'}`;
 
   const requestBody = JSON.stringify({
     model: 'qwen-turbo-latest',
@@ -29,7 +29,7 @@ async function generateQianwenSummary(article) {
         content: prompt
       }
     ],
-    max_tokens: 800
+    max_tokens: 1500
   });
 
   return new Promise((resolve, reject) => {
