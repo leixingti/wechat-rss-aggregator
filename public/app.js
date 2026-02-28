@@ -369,8 +369,11 @@ function displayArticlesGrouped(articles, targetGrid, targetPagination) {
 }
 
 function generateArticleCard(article) {
+  const category = article.category || 'ai_news';
+  const safeLink = escapeHtml(article.link);
+  const safeCategory = escapeHtml(category);
   return `
-    <article class="article-card" onclick="openArticle('${escapeHtml(article.link)}')">
+    <article class="article-card" onclick="openArticleSummary(${article.id}, '${safeLink}', '${safeCategory}')">
       ${article.imageUrl ? `
         <img src="${escapeHtml(article.imageUrl)}" 
              alt="${escapeHtml(article.title)}" 
@@ -735,6 +738,59 @@ function escapeHtml(text) {
 
 function openArticle(url) {
   window.open(url, '_blank');
+}
+
+async function openArticleSummary(articleId, url, category) {
+  // 非 ai_news 文章直接打开原文
+  if (category !== 'ai_news') {
+    window.open(url, '_blank');
+    return;
+  }
+
+  // 找到文章元数据
+  const article = allArticles.find(a => a.id === articleId);
+
+  // 填充弹窗基本信息
+  document.getElementById('summaryTitle').textContent = article ? article.title : '';
+  document.getElementById('summarySource').textContent = article ? article.source : '';
+  document.getElementById('summaryDate').textContent = article ? formatDate(article.pubDate) : '';
+  document.getElementById('summaryOriginalLink').href = url;
+
+  // 显示 loading
+  document.getElementById('summaryBody').innerHTML = `
+    <div class="summary-loading">
+      <div class="summary-spinner"></div>
+      <span>AI 正在生成摘要...</span>
+    </div>`;
+
+  // 显示模态弹窗
+  const modal = document.getElementById('summaryModal');
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // 请求摘要
+  try {
+    const resp = await fetch(`/api/articles/${articleId}/summary`);
+    const data = await resp.json();
+    if (data.summary) {
+      document.getElementById('summaryBody').innerHTML =
+        `<p class="summary-text">${escapeHtml(data.summary)}</p>`;
+    } else {
+      document.getElementById('summaryBody').innerHTML =
+        `<p class="summary-error">摘要生成失败：${escapeHtml(data.error || '未知错误')}</p>`;
+    }
+  } catch (e) {
+    document.getElementById('summaryBody').innerHTML =
+      `<p class="summary-error">网络错误，请直接阅读原文。</p>`;
+  }
+}
+
+function closeSummaryModal(event) {
+  // 点击背景层时关闭；或直接调用（无 event）时关闭
+  if (event && event.target !== document.getElementById('summaryModal')) return;
+  const modal = document.getElementById('summaryModal');
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 function showLoading() {

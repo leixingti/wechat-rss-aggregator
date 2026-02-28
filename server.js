@@ -8,6 +8,7 @@ const fs = require('fs');
 const db = require('./database');
 const { fetchArticles } = require('./fetcher');
 const rssManager = require('./rss-manager');
+const { generateQianwenSummary } = require('./qianwen');
 
 // 环境变量配置
 require('dotenv').config();
@@ -175,6 +176,40 @@ app.get('/api/articles/:id', (req, res) => {
       return res.status(404).json({ error: '文章未找到' });
     }
     res.json(row);
+  });
+});
+
+// API: 获取或生成文章 AI 摘要（通义千问，支持缓存）
+app.get('/api/articles/:id/summary', (req, res) => {
+  const { id } = req.params;
+
+  db.get('SELECT * FROM articles WHERE id = ?', [id], async (err, article) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!article) {
+      return res.status(404).json({ error: '文章不存在' });
+    }
+
+    // 已有缓存摘要，直接返回
+    if (article.ai_summary) {
+      return res.json({ summary: article.ai_summary, cached: true });
+    }
+
+    // 调用通义千问生成摘要
+    try {
+      const summary = await generateQianwenSummary(article);
+      // 写入数据库缓存（异步，不等待）
+      db.run('UPDATE articles SET ai_summary = ? WHERE id = ?', [summary, id], (updateErr) => {
+        if (updateErr) {
+          log.warn(`缓存摘要写入失败 id=${id}: ${updateErr.message}`);
+        }
+      });
+      res.json({ summary, cached: false });
+    } catch (e) {
+      log.error(`摘要生成失败 id=${id}:`, e);
+      res.status(500).json({ error: `摘要生成失败: ${e.message}` });
+    }
   });
 });
 

@@ -92,7 +92,7 @@ function initDatabase() {
   });
 }
 
-// 为已存在的数据库添加category字段
+// 为已存在的数据库添加缺失字段
 function addCategoryColumn() {
   db.all("PRAGMA table_info(articles)", (err, rows) => {
     if (err) {
@@ -101,8 +101,12 @@ function addCategoryColumn() {
     }
 
     const hasCategory = rows.some(row => row.name === 'category');
+    const hasAiSummary = rows.some(row => row.name === 'ai_summary');
+
+    let pendingAlters = 0;
 
     if (!hasCategory) {
+      pendingAlters++;
       console.log('🔄 添加category字段...');
       db.run(`ALTER TABLE articles ADD COLUMN category TEXT DEFAULT 'ai_news'`, (err) => {
         if (err) {
@@ -110,9 +114,25 @@ function addCategoryColumn() {
         } else {
           console.log('✅ category字段已添加');
         }
+        if (--pendingAlters === 0) checkAndRestoreBackup();
       });
-    } else {
-      // category字段已存在，检查是否需要恢复备份
+    }
+
+    if (!hasAiSummary) {
+      pendingAlters++;
+      console.log('🔄 添加ai_summary字段...');
+      db.run(`ALTER TABLE articles ADD COLUMN ai_summary TEXT`, (err) => {
+        if (err) {
+          console.error('❌ 添加ai_summary字段失败:', err.message);
+        } else {
+          console.log('✅ ai_summary字段已添加');
+        }
+        if (--pendingAlters === 0) checkAndRestoreBackup();
+      });
+    }
+
+    if (pendingAlters === 0) {
+      // 所有字段已存在，检查是否需要恢复备份
       checkAndRestoreBackup();
     }
   });
