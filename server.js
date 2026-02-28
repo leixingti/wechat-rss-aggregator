@@ -141,8 +141,8 @@ app.get('/api/articles', (req, res) => {
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  query += ' ORDER BY pubDate DESC LIMIT ? OFFSET ?';
-  
+  query += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
+
   db.get(countQuery, params, (err, countRow) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -359,7 +359,7 @@ app.get('/api/articles/by-category', (req, res) => {
     params.push(category);
   }
   
-  query += ' ORDER BY pubDate DESC LIMIT ? OFFSET ?';
+  query += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), offset);
   
   // 获取总数
