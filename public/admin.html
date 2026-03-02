@@ -48,7 +48,7 @@
     .feed-list {
       margin-top: 2rem;
     }
-    
+
     .feed-item {
       background: white;
       padding: 1.5rem;
@@ -58,6 +58,31 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    .feed-item.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .feed-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      accent-color: #2563eb;
+      margin-right: 0.75rem;
+    }
+
+    .bulk-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
     }
     
     .feed-info {
@@ -115,7 +140,7 @@
     }
     
     .modal.active { display: flex; }
-    
+
     .modal-content {
       background: white;
       padding: 2rem;
@@ -123,6 +148,27 @@
       max-width: 500px;
       width: 90%;
     }
+
+    /* 导出步骤Tab样式 */
+    .export-step-tab {
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      color: #6b7280;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .export-step-tab:hover { color: #0891b2; background: #f0f9ff; }
+    .export-step-tab.active { color: #0891b2; border-bottom-color: #0891b2; }
+    .export-step-tab.done { color: #10b981; border-bottom-color: #10b981; }
+
+    /* 主导航按钮激活态 */
+    #btnNavFeeds.nav-active { outline: 3px solid #10b981; outline-offset: 2px; }
+    #btnNavExport.nav-active { outline: 3px solid #0891b2; outline-offset: 2px; }
+
+    textarea { font-family: inherit; }
   </style>
 </head>
 <body>
@@ -146,8 +192,9 @@
       <div class="container">
         <div class="header-content">
           <h1 class="logo">🔧 RSS源管理后台</h1>
-          <div style="display:flex;gap:1rem">
-            <button class="btn btn-success" onclick="showAddModal()">+ 添加RSS源</button>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap">
+            <button class="btn btn-success" onclick="showSection('feeds')" id="btnNavFeeds">📋 RSS源管理</button>
+            <button class="btn" style="background:#0891b2;color:white" onclick="showSection('export')" id="btnNavExport">📊 数据导出</button>
             <button class="btn" style="background:#f59e0b;color:white" onclick="showPasswordModal()">修改密码</button>
             <button class="btn" style="background:#8b5cf6;color:white" onclick="updateArticleSources()">更新来源名称</button>
             <button class="btn btn-primary" onclick="window.location.href='/'">返回首页</button>
@@ -158,23 +205,228 @@
     </header>
 
     <div class="admin-container">
-      <!-- 分类Tab导航 -->
-      <div style="margin-bottom:2rem;border-bottom:2px solid #e5e7eb;">
-        <div style="display:flex;gap:0;">
-          <button class="admin-tab-btn active" data-category="all" onclick="switchAdminTab('all')">
-            📋 全部RSS源 (<span id="countAll">0</span>)
-          </button>
-          <button class="admin-tab-btn" data-category="ai_news" onclick="switchAdminTab('ai_news')">
-            🤖 聚焦AI行业 (<span id="countAI">0</span>)
-          </button>
-          <button class="admin-tab-btn" data-category="it_news" onclick="switchAdminTab('it_news')">
-            💻 IT行业新闻 (<span id="countIT">0</span>)
-          </button>
+
+      <!-- ======== RSS源管理区域 ======== -->
+      <div id="sectionFeeds">
+        <!-- 分类Tab导航 -->
+        <div style="margin-bottom:2rem;border-bottom:2px solid #e5e7eb;">
+          <div style="display:flex;gap:0;">
+            <button class="admin-tab-btn active" data-category="all" onclick="switchAdminTab('all')">
+              📋 全部RSS源 (<span id="countAll">0</span>)
+            </button>
+            <button class="admin-tab-btn" data-category="ai_news" onclick="switchAdminTab('ai_news')">
+              🤖 聚焦AI行业 (<span id="countAI">0</span>)
+            </button>
+            <button class="admin-tab-btn" data-category="it_news" onclick="switchAdminTab('it_news')">
+              💻 IT行业新闻 (<span id="countIT">0</span>)
+            </button>
+          </div>
+        </div>
+        <h2 id="currentTabTitle">全部RSS源列表</h2>
+        <div class="bulk-toolbar">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:500;">
+            <input type="checkbox" id="selectAll" class="feed-checkbox" style="margin-right:0" onchange="toggleSelectAll()">
+            全选
+          </label>
+          <span id="selectedCount" style="color:#6b7280;font-size:0.875rem;">已选 0 项</span>
+          <button id="bulkDeleteBtn" class="btn btn-danger" onclick="bulkDelete()" disabled>🗑 批量删除</button>
+        </div>
+        <div id="feedList" class="feed-list"></div>
+      </div>
+
+      <!-- ======== 数据导出审批区域 ======== -->
+      <div id="sectionExport" style="display:none">
+        <h2 style="margin-bottom:0.5rem">📊 数据导出申请</h2>
+        <p style="color:#6b7280;margin-bottom:2rem;font-size:0.9rem">
+          根据数据安全管理规定，导出系统数据前须填写完整申请信息、明确数据用途并确认安全承诺，所有操作将留存审计日志。
+        </p>
+
+        <!-- 步骤指示器 -->
+        <div style="display:flex;gap:0;margin-bottom:2rem;border-bottom:2px solid #e5e7eb;">
+          <div class="export-step-tab active" id="stepTab1" onclick="goStep(1)">① 申请人信息</div>
+          <div class="export-step-tab" id="stepTab2" onclick="goStep(2)">② 数据用途</div>
+          <div class="export-step-tab" id="stepTab3" onclick="goStep(3)">③ 导出要求</div>
+          <div class="export-step-tab" id="stepTab4" onclick="goStep(4)">④ 安全承诺</div>
+          <div class="export-step-tab" id="stepTab5" onclick="goStep(5)">⑤ 确认导出</div>
+        </div>
+
+        <form id="exportForm" onsubmit="return false">
+
+          <!-- Step 1: 申请人信息 -->
+          <div class="export-step-panel" id="stepPanel1">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.5rem;padding:1rem;margin-bottom:1.5rem;font-size:0.875rem;color:#1e40af">
+              ℹ️ 申请人信息将被记录在导出审计日志中，请如实填写。
+            </div>
+            <div class="form-group">
+              <label>申请人姓名 <span style="color:red">*</span></label>
+              <input type="text" id="expApplicant" placeholder="请输入真实姓名" required>
+            </div>
+            <div class="form-group">
+              <label>所在部门 <span style="color:red">*</span></label>
+              <input type="text" id="expDepartment" placeholder="例如：技术部、运营部、数据分析组">
+            </div>
+            <div class="form-group">
+              <label>联系方式（邮箱或手机）</label>
+              <input type="text" id="expContact" placeholder="便于审批人联系">
+            </div>
+            <div style="text-align:right;margin-top:1.5rem">
+              <button type="button" class="btn btn-primary" onclick="nextStep(1)">下一步 →</button>
+            </div>
+          </div>
+
+          <!-- Step 2: 数据用途 -->
+          <div class="export-step-panel" id="stepPanel2" style="display:none">
+            <div style="background:#fef9c3;border:1px solid #fde047;border-radius:0.5rem;padding:1rem;margin-bottom:1.5rem;font-size:0.875rem;color:#713f12">
+              ⚠️ 数据用途须真实准确，不得用于申请范围之外的用途，违规使用将承担相应责任。
+            </div>
+            <div class="form-group">
+              <label>用途类型 <span style="color:red">*</span></label>
+              <select id="expPurposeType" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
+                <option value="">-- 请选择 --</option>
+                <option value="data_analysis">数据分析与统计</option>
+                <option value="operation_report">运营报表制作</option>
+                <option value="tech_research">技术研究与测试</option>
+                <option value="content_review">内容合规审查</option>
+                <option value="backup">数据备份与归档</option>
+                <option value="other">其他用途</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>具体用途说明 <span style="color:red">*</span>（不少于20字）</label>
+              <textarea id="expPurpose" rows="4" placeholder="请详细说明本次导出数据的具体使用目的、使用场景及预期成果..." style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;resize:vertical;font-size:0.9rem"></textarea>
+              <div id="purposeCharCount" style="text-align:right;font-size:0.75rem;color:#9ca3af;margin-top:0.25rem">0 / 最少20字</div>
+            </div>
+            <div class="form-group">
+              <label>数据使用范围</label>
+              <select id="expDataScope" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
+                <option value="internal">仅限内部使用</option>
+                <option value="team">团队内部共享</option>
+                <option value="report">形成报告对外汇报</option>
+              </select>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:1.5rem">
+              <button type="button" class="btn" style="background:#6b7280;color:white" onclick="goStep(1)">← 上一步</button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(2)">下一步 →</button>
+            </div>
+          </div>
+
+          <!-- Step 3: 导出要求设置 -->
+          <div class="export-step-panel" id="stepPanel3" style="display:none">
+            <div class="form-group">
+              <label>数据分类</label>
+              <select id="expCategory" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;" onchange="updatePreview()">
+                <option value="all">全部分类</option>
+                <option value="ai_news">聚焦AI行业</option>
+                <option value="it_news">IT行业新闻</option>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+              <div class="form-group">
+                <label>开始日期</label>
+                <input type="date" id="expStartDate" onchange="updatePreview()" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
+              </div>
+              <div class="form-group">
+                <label>结束日期</label>
+                <input type="date" id="expEndDate" onchange="updatePreview()" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>导出字段（至少选一项）</label>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:0.5rem;padding:1rem;background:#f9fafb;border-radius:0.375rem;border:1px solid #e5e7eb">
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="id" checked> 文章ID</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="title" checked> 标题</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="link" checked> 链接</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="description" checked> 摘要描述</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="pubDate"> 发布时间</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="author"> 作者</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="source" checked> 来源</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="category" checked> 分类</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="imageUrl"> 封面图</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="createdAt" checked> 入库时间</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer"><input type="checkbox" class="exp-field" value="ai_summary"> AI摘要</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>导出格式</label>
+              <div style="display:flex;gap:1rem;margin-top:0.5rem">
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer">
+                  <input type="radio" name="expFormat" value="csv" checked> CSV（推荐，兼容Excel）
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer">
+                  <input type="radio" name="expFormat" value="json"> JSON（结构化数据）
+                </label>
+              </div>
+            </div>
+
+            <!-- 预估数据量 -->
+            <div id="previewBox" style="background:#f0fdf4;border:1px solid #86efac;border-radius:0.5rem;padding:1rem;font-size:0.9rem;color:#166534">
+              预估导出记录数：<strong id="previewCount">--</strong> 条
+              <button type="button" onclick="updatePreview()" style="margin-left:1rem;background:#16a34a;color:white;border:none;padding:0.25rem 0.75rem;border-radius:0.25rem;cursor:pointer;font-size:0.8rem">刷新预估</button>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:1.5rem">
+              <button type="button" class="btn" style="background:#6b7280;color:white" onclick="goStep(2)">← 上一步</button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(3)">下一步 →</button>
+            </div>
+          </div>
+
+          <!-- Step 4: 安全承诺书 -->
+          <div class="export-step-panel" id="stepPanel4" style="display:none">
+            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:0.5rem;padding:1.5rem;margin-bottom:1.5rem;line-height:1.8;font-size:0.9rem;color:#431407">
+              <h4 style="margin-bottom:1rem;color:#9a3412">《数据安全使用承诺书》</h4>
+              本人申请导出系统中的文章数据，在此郑重承诺：
+              <ol style="margin:1rem 0;padding-left:1.5rem">
+                <li>本次数据导出仅用于所申请的正当用途，不得擅自扩大使用范围；</li>
+                <li>未经授权，不得将导出数据转让、出售或提供给任何第三方；</li>
+                <li>导出数据须妥善保管，采取必要的技术措施防止数据泄露；</li>
+                <li>数据使用完毕后，应及时删除本地副本，不得长期留存；</li>
+                <li>如发现数据泄露风险，须立即向系统管理员报告；</li>
+                <li>本人对使用导出数据的一切行为承担相应的法律责任；</li>
+                <li>本次导出操作将被系统完整记录，用于安全审计。</li>
+              </ol>
+              <strong>违反上述承诺，将依据相关法律法规和内部管理制度追究责任。</strong>
+            </div>
+            <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:1rem;background:#fafafa;border:2px solid #e5e7eb;border-radius:0.5rem;" id="commitmentLabel">
+              <input type="checkbox" id="expCommitment" style="width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:#dc2626" onchange="updateCommitmentStyle()">
+              <span style="font-size:0.9rem;line-height:1.6">
+                本人已仔细阅读上述《数据安全使用承诺书》，完全理解并同意遵守其中的所有条款。
+                本人对本次数据导出的合法合规性负责，如有违规行为愿承担相应责任。
+              </span>
+            </label>
+            <div style="display:flex;justify-content:space-between;margin-top:1.5rem">
+              <button type="button" class="btn" style="background:#6b7280;color:white" onclick="goStep(3)">← 上一步</button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(4)">下一步 →</button>
+            </div>
+          </div>
+
+          <!-- Step 5: 确认导出 -->
+          <div class="export-step-panel" id="stepPanel5" style="display:none">
+            <h3 style="margin-bottom:1rem">申请信息确认</h3>
+            <div id="exportSummary" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1.5rem;margin-bottom:1.5rem;font-size:0.9rem;line-height:2"></div>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:0.5rem;padding:1rem;margin-bottom:1.5rem;font-size:0.875rem;color:#991b1b">
+              ⚠️ 提交后将立即执行导出并记录审计日志，请确认以上信息无误后再点击导出按钮。
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <button type="button" class="btn" style="background:#6b7280;color:white" onclick="goStep(4)">← 返回修改</button>
+              <button type="button" id="exportSubmitBtn" class="btn btn-danger" style="padding:0.75rem 2rem;font-size:1rem" onclick="submitExport()">
+                ✅ 确认提交并导出数据
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- 导出历史记录 -->
+        <div style="margin-top:3rem;border-top:2px solid #e5e7eb;padding-top:2rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h3>📋 导出审计日志</h3>
+            <button class="btn btn-primary" onclick="loadExportLogs()" style="font-size:0.875rem">刷新</button>
+          </div>
+          <div id="exportLogTable" style="overflow-x:auto">
+            <p style="color:#9ca3af;text-align:center;padding:2rem">点击"刷新"加载导出记录</p>
+          </div>
         </div>
       </div>
 
-      <h2 id="currentTabTitle">全部RSS源列表</h2>
-      <div id="feedList" class="feed-list"></div>
     </div>
   </div>
 
@@ -273,7 +525,8 @@
       }
       
       const html = filteredFeeds.map((feed, index) => `
-        <div class="feed-item">
+        <div class="feed-item" id="item-${feed.id}">
+          <input type="checkbox" class="feed-checkbox" data-id="${feed.id}" onchange="updateBulkToolbar()">
           <div class="feed-info">
             <h3>
               <span style="display:inline-block;background:#6b7280;color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;margin-right:0.5rem;font-size:0.875rem;">
@@ -306,9 +559,47 @@
           ${currentCategory === 'all' ? '暂无RSS源' : `暂无${categoryNames[currentCategory]}RSS源`}
         </p>
       `;
-      
-      // 更新计数
+
+      // 更新计数和批量工具栏
       updateCounts();
+      updateBulkToolbar();
+    }
+
+    function toggleSelectAll() {
+      const checked = document.getElementById('selectAll').checked;
+      document.querySelectorAll('.feed-checkbox[data-id]').forEach(cb => cb.checked = checked);
+      updateBulkToolbar();
+    }
+
+    function updateBulkToolbar() {
+      const checked = document.querySelectorAll('.feed-checkbox[data-id]:checked');
+      const total = document.querySelectorAll('.feed-checkbox[data-id]');
+      const count = checked.length;
+      document.getElementById('selectedCount').textContent = `已选 ${count} 项`;
+      const selectAllCb = document.getElementById('selectAll');
+      selectAllCb.indeterminate = count > 0 && count < total.length;
+      selectAllCb.checked = total.length > 0 && count === total.length;
+      document.getElementById('bulkDeleteBtn').disabled = count === 0;
+    }
+
+    async function bulkDelete() {
+      const checked = document.querySelectorAll('.feed-checkbox[data-id]:checked');
+      if (checked.length === 0) return;
+      if (!confirm(`确定要删除选中的 ${checked.length} 个RSS源吗？此操作不可恢复。`)) return;
+      const ids = Array.from(checked).map(cb => cb.dataset.id);
+      let success = 0;
+      for (const id of ids) {
+        try {
+          const res = await fetch(`/api/admin/feeds/${id}`, {
+            method: 'DELETE',
+            headers: {'X-Admin-Password': currentPassword}
+          });
+          const data = await res.json();
+          if (data.success) success++;
+        } catch(e) {}
+      }
+      await loadFeeds();
+      alert(`已成功删除 ${success} 个RSS源`);
     }
     
     // 更新各分类的计数
@@ -513,7 +804,236 @@
       }
     }
 
+    // =============================================
+    // 导出审批功能
+    // =============================================
+    let currentExportStep = 1;
+
+    // 切换主区域（feeds / export）
+    function showSection(section) {
+      document.getElementById('sectionFeeds').style.display = section === 'feeds' ? '' : 'none';
+      document.getElementById('sectionExport').style.display = section === 'export' ? '' : 'none';
+      document.getElementById('btnNavFeeds').classList.toggle('nav-active', section === 'feeds');
+      document.getElementById('btnNavExport').classList.toggle('nav-active', section === 'export');
+      if (section === 'export') {
+        updatePreview();
+        loadExportLogs();
+      }
+    }
+
+    function goStep(n) {
+      document.querySelectorAll('.export-step-panel').forEach(p => p.style.display = 'none');
+      document.getElementById('stepPanel' + n).style.display = '';
+      document.querySelectorAll('.export-step-tab').forEach((t, i) => {
+        t.classList.remove('active', 'done');
+        if (i + 1 === n) t.classList.add('active');
+        else if (i + 1 < n) t.classList.add('done');
+      });
+      currentExportStep = n;
+      if (n === 5) buildExportSummary();
+    }
+
+    function nextStep(current) {
+      if (current === 1) {
+        if (!document.getElementById('expApplicant').value.trim()) {
+          alert('请填写申请人姓名'); return;
+        }
+        if (!document.getElementById('expDepartment').value.trim()) {
+          alert('请填写所在部门'); return;
+        }
+      }
+      if (current === 2) {
+        if (!document.getElementById('expPurposeType').value) {
+          alert('请选择用途类型'); return;
+        }
+        const purpose = document.getElementById('expPurpose').value.trim();
+        if (purpose.length < 20) {
+          alert('具体用途说明不少于20字，当前：' + purpose.length + '字'); return;
+        }
+      }
+      if (current === 3) {
+        const fields = Array.from(document.querySelectorAll('.exp-field:checked')).map(c => c.value);
+        if (fields.length === 0) { alert('请至少选择一个导出字段'); return; }
+      }
+      if (current === 4) {
+        if (!document.getElementById('expCommitment').checked) {
+          alert('请勾选数据安全使用承诺书确认选项'); return;
+        }
+      }
+      goStep(current + 1);
+    }
+
+    // 实时字数统计
+    document.addEventListener('DOMContentLoaded', () => {
+      const purposeEl = document.getElementById('expPurpose');
+      if (purposeEl) {
+        purposeEl.addEventListener('input', () => {
+          const len = purposeEl.value.trim().length;
+          const el = document.getElementById('purposeCharCount');
+          el.textContent = len + ' / 最少20字';
+          el.style.color = len >= 20 ? '#10b981' : '#ef4444';
+        });
+      }
+    });
+
+    function updateCommitmentStyle() {
+      const label = document.getElementById('commitmentLabel');
+      label.style.borderColor = document.getElementById('expCommitment').checked ? '#10b981' : '#e5e7eb';
+      label.style.background = document.getElementById('expCommitment').checked ? '#f0fdf4' : '#fafafa';
+    }
+
+    async function updatePreview() {
+      const category = document.getElementById('expCategory').value;
+      const startDate = document.getElementById('expStartDate').value;
+      const endDate = document.getElementById('expEndDate').value;
+      let url = '/api/admin/export-preview?category=' + encodeURIComponent(category);
+      if (startDate) url += '&startDate=' + startDate;
+      if (endDate) url += '&endDate=' + endDate;
+      try {
+        const res = await fetch(url, { headers: {'X-Admin-Password': currentPassword} });
+        const data = await res.json();
+        document.getElementById('previewCount').textContent = data.success ? data.count.toLocaleString() : '--';
+      } catch(e) {
+        document.getElementById('previewCount').textContent = '--';
+      }
+    }
+
+    const PURPOSE_TYPE_LABELS = {
+      data_analysis: '数据分析与统计', operation_report: '运营报表制作',
+      tech_research: '技术研究与测试', content_review: '内容合规审查',
+      backup: '数据备份与归档', other: '其他用途'
+    };
+    const DATA_SCOPE_LABELS = { internal: '仅限内部使用', team: '团队内部共享', report: '形成报告对外汇报' };
+    const FIELD_LABELS = { id:'文章ID', title:'标题', link:'链接', description:'摘要描述', pubDate:'发布时间', author:'作者', source:'来源', category:'分类', imageUrl:'封面图', createdAt:'入库时间', ai_summary:'AI摘要' };
+    const CATEGORY_LABELS = { all:'全部分类', ai_news:'聚焦AI行业', it_news:'IT行业新闻' };
+
+    function buildExportSummary() {
+      const fields = Array.from(document.querySelectorAll('.exp-field:checked')).map(c => c.value);
+      const format = document.querySelector('input[name="expFormat"]:checked').value;
+      const category = document.getElementById('expCategory').value;
+      const count = document.getElementById('previewCount').textContent;
+      const rows = [
+        ['申请人', document.getElementById('expApplicant').value],
+        ['所在部门', document.getElementById('expDepartment').value],
+        ['联系方式', document.getElementById('expContact').value || '—'],
+        ['用途类型', PURPOSE_TYPE_LABELS[document.getElementById('expPurposeType').value] || ''],
+        ['具体用途', document.getElementById('expPurpose').value.trim()],
+        ['使用范围', DATA_SCOPE_LABELS[document.getElementById('expDataScope').value]],
+        ['数据分类', CATEGORY_LABELS[category]],
+        ['时间范围', (document.getElementById('expStartDate').value || '不限') + ' ~ ' + (document.getElementById('expEndDate').value || '不限')],
+        ['导出字段', fields.map(f => FIELD_LABELS[f] || f).join('、')],
+        ['导出格式', format.toUpperCase()],
+        ['预估记录', count + ' 条'],
+      ];
+      document.getElementById('exportSummary').innerHTML = rows.map(([k,v]) =>
+        `<div style="display:grid;grid-template-columns:120px 1fr;border-bottom:1px solid #f3f4f6;padding:0.35rem 0">
+          <span style="color:#6b7280;font-weight:500">${k}</span><span>${v}</span>
+        </div>`
+      ).join('');
+    }
+
+    async function submitExport() {
+      const btn = document.getElementById('exportSubmitBtn');
+      btn.disabled = true;
+      btn.textContent = '正在导出...';
+      const fields = Array.from(document.querySelectorAll('.exp-field:checked')).map(c => c.value);
+      const format = document.querySelector('input[name="expFormat"]:checked').value;
+      const body = {
+        applicantName: document.getElementById('expApplicant').value.trim(),
+        department: document.getElementById('expDepartment').value.trim(),
+        contact: document.getElementById('expContact').value.trim(),
+        purposeType: document.getElementById('expPurposeType').value,
+        purpose: document.getElementById('expPurpose').value.trim(),
+        dataScope: document.getElementById('expDataScope').value,
+        category: document.getElementById('expCategory').value,
+        startDate: document.getElementById('expStartDate').value,
+        endDate: document.getElementById('expEndDate').value,
+        fields,
+        format,
+        commitment: true
+      };
+      try {
+        const res = await fetch('/api/admin/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': currentPassword },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert('导出失败：' + (err.error || res.statusText));
+          btn.disabled = false; btn.textContent = '✅ 确认提交并导出数据';
+          return;
+        }
+        const disposition = res.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="([^"]+)"/);
+        const filename = match ? match[1] : ('export-' + Date.now() + '.' + format);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ 导出成功！文件已下载：' + filename);
+        loadExportLogs();
+        btn.disabled = false; btn.textContent = '✅ 确认提交并导出数据';
+      } catch(e) {
+        alert('导出请求失败：' + e.message);
+        btn.disabled = false; btn.textContent = '✅ 确认提交并导出数据';
+      }
+    }
+
+    async function loadExportLogs() {
+      const container = document.getElementById('exportLogTable');
+      container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem">加载中...</p>';
+      try {
+        const res = await fetch('/api/admin/export-logs', { headers: {'X-Admin-Password': currentPassword} });
+        const data = await res.json();
+        if (!data.success || !data.logs.length) {
+          container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:2rem">暂无导出记录</p>';
+          return;
+        }
+        const CATL = { all:'全部', ai_news:'AI行业', it_news:'IT行业' };
+        const FMTL = { csv:'CSV', json:'JSON' };
+        const PTYL = { data_analysis:'数据分析', operation_report:'运营报表', tech_research:'技术研究', content_review:'内容审查', backup:'数据备份', other:'其他', '':'' };
+        container.innerHTML = `
+          <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+            <thead>
+              <tr style="background:#f3f4f6;text-align:left">
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">导出时间</th>
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">申请人</th>
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">部门</th>
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">用途类型</th>
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">数据范围</th>
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">记录数</th>
+                <th style="padding:0.75rem;border-bottom:2px solid #e5e7eb">格式</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.logs.map(log => `
+                <tr style="border-bottom:1px solid #f3f4f6">
+                  <td style="padding:0.75rem;color:#6b7280;white-space:nowrap">${log.exported_at ? log.exported_at.replace('T',' ').slice(0,19) : ''}</td>
+                  <td style="padding:0.75rem;font-weight:500">${log.applicant_name || ''}</td>
+                  <td style="padding:0.75rem">${log.department || ''}</td>
+                  <td style="padding:0.75rem">${PTYL[log.purpose_type] || log.purpose_type || ''}</td>
+                  <td style="padding:0.75rem">
+                    <span style="background:#e0f2fe;color:#075985;padding:0.15rem 0.5rem;border-radius:0.25rem;font-size:0.75rem">${CATL[log.category] || log.category}</span>
+                    <span style="font-size:0.8rem;color:#9ca3af;margin-left:0.25rem">${log.start_date || '不限'} ~ ${log.end_date || '不限'}</span>
+                  </td>
+                  <td style="padding:0.75rem;font-weight:600;color:#0891b2">${(log.record_count || 0).toLocaleString()}</td>
+                  <td style="padding:0.75rem">
+                    <span style="background:${log.format==='csv'?'#dcfce7':'#fef9c3'};color:${log.format==='csv'?'#166534':'#713f12'};padding:0.15rem 0.5rem;border-radius:0.25rem;font-size:0.75rem">${FMTL[log.format] || log.format}</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`;
+      } catch(e) {
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;padding:1rem">加载失败：' + e.message + '</p>';
+      }
+    }
+
+    // =============================================
     // 更新所有文章的来源名称
+    // =============================================
     async function updateArticleSources() {
       if (!confirm('确定要更新所有文章的来源名称吗？\n这会将数据库中的旧名称更新为RSS配置中的新名称。')) {
         return;
