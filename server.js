@@ -306,6 +306,131 @@ app.post('/api/admin/update-sources', authMiddleware, async (req, res) => {
 });
 
 // ========================================
+// 数据导出 API（含审批流程）
+// ========================================
+
+// 下载数据导出申请表 Word 模板
+app.get('/api/admin/export-template', authMiddleware, async (req, res) => {
+  try {
+    const genScript = path.join(__dirname, 'generate-export-form.js');
+    if (!require('fs').existsSync(genScript)) {
+      return res.status(404).json({ success: false, error: '模板生成脚本不存在' });
+    }
+    // 动态 require 生成器并直接获取 Buffer（不写文件）
+    const {
+      Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun,
+      HeadingLevel, AlignmentType, WidthType, BorderStyle, VerticalAlign, ShadingType
+    } = require('docx');
+
+    // 直接读取已生成的文件（generate-export-form.js 会写到项目目录）
+    const docxPath = path.join(__dirname, '数据导出申请表.docx');
+    if (require('fs').existsSync(docxPath)) {
+      const buf = require('fs').readFileSync(docxPath);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', 'attachment; filename*=UTF-8\'\'%E6%95%B0%E6%8D%AE%E5%AF%BC%E5%87%BA%E7%94%B3%E8%AF%B7%E8%A1%A8.docx');
+      res.setHeader('Content-Length', buf.length);
+      return res.send(buf);
+    }
+    res.status(404).json({ success: false, error: '模板文件尚未生成，请先运行 node generate-export-form.js' });
+  } catch (e) {
+    log.error('下载模板失败:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// 允许导出的字段白名单
+const EXPORTABLE_FIELDS = ['id', 'title', 'link', 'description', 'pubDate', 'author', 'source', 'category', 'imageUrl', 'createdAt', 'ai_summary'];
+
+// 预览导出数据量
+app.get('/api/admin/export-preview', authMiddleware, (req, res) => {
+  const { category, startDate, endDate } = req.query;
+  let query = 'SELECT COUNT(*) as total FROM articles WHERE 1=1';
+  const params = [];
+  if (category && category !== 'all') { query += ' AND category = ?'; params.push(category); }
+  if (startDate) { query += ' AND createdAt >= ?'; params.push(startDate); }
+  if (endDate) { query += ' AND createdAt <= ?'; params.push(endDate + ' 23:59:59'); }
+  db.get(query, params, (err, row) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, count: row.total });
+  });
+});
+
+// 执行数据导出（需完整审批信息）
+app.post('/api/admin/export', authMiddleware, (req, res) => {
+  const {
+    applicantName, department, contact,
+    purposeType, purpose, dataScope,
+    category, startDate, endDate,
+    fields, format, commitment
+  } = req.body;
+
+  if (!applicantName || !department || !purpose || !commitment) {
+    return res.status(400).json({ success: false, error: '请填写完整申请信息并勾选承诺书' });
+  }
+
+  const selectedFields = Array.isArray(fields) && fields.length > 0
+    ? fields.filter(f => EXPORTABLE_FIELDS.includes(f))
+    : EXPORTABLE_FIELDS;
+
+  if (selectedFields.length === 0) {
+    return res.status(400).json({ success: false, error: '请至少选择一个导出字段' });
+  }
+
+  let query = `SELECT ${selectedFields.join(', ')} FROM articles WHERE 1=1`;
+  const params = [];
+  if (category && category !== 'all') { query += ' AND category = ?'; params.push(category); }
+  if (startDate) { query += ' AND createdAt >= ?'; params.push(startDate); }
+  if (endDate) { query += ' AND createdAt <= ?'; params.push(endDate + ' 23:59:59'); }
+  query += ' ORDER BY createdAt DESC';
+
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+
+    const exportedAt = new Date().toISOString();
+
+    // 写入审批日志
+    db.run(
+      `INSERT INTO export_logs (applicant_name, department, contact, purpose_type, purpose, data_scope, category, start_date, end_date, fields, format, record_count, exported_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [applicantName, department, contact || '', purposeType || '', purpose, dataScope || '', category || 'all', startDate || '', endDate || '', selectedFields.join(','), format || 'csv', rows.length, exportedAt],
+      (logErr) => { if (logErr) log.warn('导出日志记录失败: ' + logErr.message); }
+    );
+
+    const filename = `articles-export-${exportedAt.slice(0, 10)}-${Date.now()}`;
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.json"`);
+      res.json({
+        exportInfo: { applicantName, department, purpose, category: category || 'all', startDate, endDate, fields: selectedFields, format, recordCount: rows.length, exportedAt },
+        data: rows
+      });
+    } else {
+      // CSV（BOM 使 Excel 正常显示中文）
+      const csvHeader = selectedFields.join(',');
+      const csvRows = rows.map(row =>
+        selectedFields.map(f => {
+          const val = row[f] == null ? '' : String(row[f]);
+          return `"${val.replace(/"/g, '""')}"`;
+        }).join(',')
+      );
+      const csv = '\ufeff' + [csvHeader, ...csvRows].join('\r\n');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
+      res.send(csv);
+    }
+  });
+});
+
+// 获取导出审批日志（最近 100 条）
+app.get('/api/admin/export-logs', authMiddleware, (req, res) => {
+  db.all('SELECT * FROM export_logs ORDER BY exported_at DESC LIMIT 100', [], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, logs: rows });
+  });
+});
+
+// ========================================
 // 会议 API
 // ========================================
 const { getAllConferences, getUpcomingConferences, generateICS } = require('./conferences');

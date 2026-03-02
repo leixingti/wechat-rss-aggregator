@@ -1,0 +1,15 @@
+node_modules/
+.DS_Store
+.env
+.env.local
+*.log
+
+# Claude Code session data
+.claude/
+
+# VSCode workspace
+*.code-workspace
+
+# Local data files
+*.db
+*.docx

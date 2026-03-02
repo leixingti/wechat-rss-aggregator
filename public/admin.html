@@ -236,9 +236,15 @@
 
       <!-- ======== 数据导出审批区域 ======== -->
       <div id="sectionExport" style="display:none">
-        <h2 style="margin-bottom:0.5rem">📊 数据导出申请</h2>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;flex-wrap:wrap;gap:1rem">
+          <h2 style="margin:0">📊 数据导出申请</h2>
+          <button class="btn" style="background:#1d4ed8;color:white;display:flex;align-items:center;gap:0.5rem;font-size:0.9rem" onclick="downloadTemplate()">
+            📄 下载线下申请表模板（Word）
+          </button>
+        </div>
         <p style="color:#6b7280;margin-bottom:2rem;font-size:0.9rem">
           根据数据安全管理规定，导出系统数据前须填写完整申请信息、明确数据用途并确认安全承诺，所有操作将留存审计日志。
+          如需线下审批，可下载 Word 申请表模板。
         </p>
 
         <!-- 步骤指示器 -->
@@ -808,6 +814,35 @@
     // 导出审批功能
     // =============================================
     let currentExportStep = 1;
+
+    // 下载 Word 申请表模板
+    async function downloadTemplate() {
+      const btn = event.currentTarget;
+      btn.disabled = true;
+      btn.textContent = '⏳ 正在生成...';
+      try {
+        const res = await fetch('/api/admin/export-template', {
+          headers: { 'X-Admin-Password': currentPassword }
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert('下载失败：' + (err.error || res.statusText));
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '数据导出申请表.docx';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(e) {
+        alert('下载失败：' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📄 下载线下申请表模板（Word）';
+      }
+    }
 
     // 切换主区域（feeds / export）
     function showSection(section) {

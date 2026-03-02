@@ -90,6 +90,32 @@ function initDatabase() {
       addCategoryColumn();
     }
   });
+
+  // 数据导出审批日志表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS export_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      applicant_name TEXT NOT NULL,
+      department TEXT NOT NULL,
+      contact TEXT,
+      purpose_type TEXT,
+      purpose TEXT NOT NULL,
+      data_scope TEXT,
+      category TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      fields TEXT,
+      format TEXT,
+      record_count INTEGER DEFAULT 0,
+      exported_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('❌ 创建导出日志表失败:', err.message);
+    } else {
+      console.log('✅ 导出日志表已就绪');
+    }
+  });
 }
 
 // 为已存在的数据库添加缺失字段
