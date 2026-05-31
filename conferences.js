@@ -188,15 +188,37 @@ const conferences = [
     website: 'http://www.ic-aidm.org'
   },
   {
+    id: 'ccai-2026',
+    title: 'CCAI 2026',
+    organizer: '南京信息工程大学、IEEE',
+    date: '2026-05-22',
+    endDate: '2026-05-24',
+    location: '南京',
+    type: 'offline',
+    description: '第六届计算机通信与人工智能国际会议，IEEE出版',
+    website: 'https://www.ccai.net/'
+  },
+  {
     id: 'gaitc-2026',
     title: 'GAITC 2026',
     organizer: '中国人工智能学会',
-    date: '2026-05-24',
-    endDate: '2026-05-26',
+    date: '2026-05-23',
+    endDate: '2026-05-25',
     location: '杭州',
     type: 'offline',
     description: '中国AI领域最高规格学术+产业大会，20+专题论坛',
     website: 'http://www.gaitc.org.cn'
+  },
+  {
+    id: 'cvpr-2026',
+    title: 'CVPR 2026',
+    organizer: 'IEEE / CVF',
+    date: '2026-06-03',
+    endDate: '2026-06-07',
+    location: '美国丹佛',
+    type: 'offline',
+    description: '国际计算机视觉与模式识别顶级会议，CV领域全球最具影响力',
+    website: 'https://cvpr.thecvf.com/Conferences/2026'
   },
   {
     id: 'caibda-2026',
@@ -235,12 +257,23 @@ const conferences = [
     id: 'waic-2026',
     title: 'WAIC 2026世界人工智能大会',
     organizer: '国家发改委等',
-    date: '2026-07-04',
+    date: '2026-07-03',
     endDate: '2026-07-06',
     location: '上海',
     type: 'offline',
     description: '全球顶级AI盛会，大模型、AI芯片、自动驾驶，7万㎡展览',
     website: 'https://www.worldaic.com.cn'
+  },
+  {
+    id: 'icml-2026',
+    title: 'ICML 2026',
+    organizer: 'International Machine Learning Society',
+    date: '2026-07-06',
+    endDate: '2026-07-11',
+    location: '韩国首尔',
+    type: 'offline',
+    description: '国际机器学习大会，ML领域全球顶级会议之一',
+    website: 'https://icml.cc/'
   },
   {
     id: 'prai-2026',
@@ -307,6 +340,17 @@ const conferences = [
     type: 'offline',
     description: '综合性技术盛会，面向技术团队负责人',
     website: 'https://qcon.infoq.cn/2026/shanghai'
+  },
+  {
+    id: 'neurips-2026',
+    title: 'NeurIPS 2026',
+    organizer: 'Neural Information Processing Systems Foundation',
+    date: '2026-12-06',
+    endDate: '2026-12-12',
+    location: '澳大利亚悉尼',
+    type: 'offline',
+    description: '神经信息处理系统大会，AI/ML领域全球最顶级学术会议',
+    website: 'https://neurips.cc/'
   },
   {
     id: 'aicon-beijing-2026',

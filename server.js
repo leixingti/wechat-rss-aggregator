@@ -166,6 +166,57 @@ app.get('/api/articles', (req, res) => {
   });
 });
 
+// API: 文章日期统计（基于全表，避免分页/limit 截断导致的统计错误）
+// 由前端传入按本地时区计算的日界限（ISO 时间戳），服务端按绝对时间比较，
+// 这样无论服务器时区如何，统计口径都与用户浏览器一致。
+app.get('/api/stats', (req, res) => {
+  db.all('SELECT pubDate FROM articles', (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    // 解析前端传入的日界限；缺省时回退到服务器本地时间
+    const parseBoundary = (v, fallback) => {
+      const d = v ? new Date(v) : null;
+      return d && !isNaN(d.getTime()) ? d : fallback;
+    };
+
+    const now = new Date();
+    const defToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const defYesterday = new Date(defToday); defYesterday.setDate(defYesterday.getDate() - 1);
+    const defWeekAgo = new Date(defToday); defWeekAgo.setDate(defWeekAgo.getDate() - 7);
+
+    const today = parseBoundary(req.query.today, defToday);
+    const yesterday = parseBoundary(req.query.yesterday, defYesterday);
+    const weekAgo = parseBoundary(req.query.weekAgo, defWeekAgo);
+
+    let todayCount = 0, yesterdayCount = 0, weekCount = 0, olderCount = 0, invalidCount = 0;
+
+    rows.forEach(r => {
+      const d = new Date(r.pubDate);
+      if (isNaN(d.getTime())) {
+        // pubDate 无法解析的归入“更早”，保证各分桶之和等于总数
+        invalidCount++;
+        olderCount++;
+        return;
+      }
+      if (d >= today) todayCount++;
+      else if (d >= yesterday) yesterdayCount++;
+      else if (d >= weekAgo) weekCount++;
+      else olderCount++;
+    });
+
+    res.json({
+      total: rows.length,
+      today: todayCount,
+      yesterday: yesterdayCount,
+      week: weekCount,
+      older: olderCount,
+      invalidDates: invalidCount
+    });
+  });
+});
+
 // API: 获取单篇文章
 app.get('/api/articles/:id', (req, res) => {
   db.get('SELECT * FROM articles WHERE id = ?', [req.params.id], (err, row) => {

@@ -209,20 +209,35 @@
       <!-- ======== RSS源管理区域 ======== -->
       <div id="sectionFeeds">
         <!-- 分类Tab导航 -->
-        <div style="margin-bottom:2rem;border-bottom:2px solid #e5e7eb;">
-          <div style="display:flex;gap:0;">
+        <div style="margin-bottom:1.5rem;border-bottom:2px solid #e5e7eb;">
+          <div style="display:flex;gap:0;flex-wrap:wrap;">
             <button class="admin-tab-btn active" data-category="all" onclick="switchAdminTab('all')">
-              📋 全部RSS源 (<span id="countAll">0</span>)
+              📋 全部 (<span id="countAll">0</span>)
+            </button>
+            <button class="admin-tab-btn" data-category="wechat" onclick="switchAdminTab('wechat')">
+              💬 微信公众号 (<span id="countWechat">0</span>)
+            </button>
+            <button class="admin-tab-btn" data-category="rss" onclick="switchAdminTab('rss')">
+              📡 RSS订阅源 (<span id="countRss">0</span>)
             </button>
             <button class="admin-tab-btn" data-category="ai_news" onclick="switchAdminTab('ai_news')">
-              🤖 聚焦AI行业 (<span id="countAI">0</span>)
+              🤖 AI行业 (<span id="countAI">0</span>)
             </button>
             <button class="admin-tab-btn" data-category="it_news" onclick="switchAdminTab('it_news')">
-              💻 IT行业新闻 (<span id="countIT">0</span>)
+              💻 IT行业 (<span id="countIT">0</span>)
             </button>
           </div>
         </div>
-        <h2 id="currentTabTitle">全部RSS源列表</h2>
+
+        <!-- 操作工具栏 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+          <h2 id="currentTabTitle" style="margin:0">全部订阅源列表</h2>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn" style="background:#7c3aed;color:white" onclick="showWechatAddModal()">💬 添加微信公众号</button>
+            <button class="btn btn-primary" onclick="showRssAddModal()">📡 添加RSS源</button>
+          </div>
+        </div>
+
         <div class="bulk-toolbar">
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:500;">
             <input type="checkbox" id="selectAll" class="feed-checkbox" style="margin-right:0" onchange="toggleSelectAll()">
@@ -436,17 +451,51 @@
     </div>
   </div>
 
+  <!-- 添加微信公众号弹窗 -->
+  <div id="wechatAddModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color:#7c3aed">💬 添加微信公众号</h3>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;">
+        输入公众号名称和微信ID，系统将自动生成RSS订阅链接。
+      </p>
+      <div class="form-group">
+        <label>公众号名称 <span style="color:red">*</span></label>
+        <input type="text" id="wechatName" placeholder="例如：量子位、机器之心">
+      </div>
+      <div class="form-group">
+        <label>微信公众号ID <span style="color:red">*</span></label>
+        <input type="text" id="wechatId" placeholder="例如：MP_WXS_3271041950">
+        <p style="font-size:0.75rem;color:#9ca3af;margin-top:0.25rem">
+          在 we-mp-rss 中获取，格式为 MP_WXS_XXXXXXXXXX
+        </p>
+      </div>
+      <div class="form-group">
+        <label>分类</label>
+        <select id="wechatCategory" style="width:100%;padding:0.75rem;border:1px solid #e5e7eb;border-radius:0.375rem;">
+          <option value="ai_news">聚焦AI行业</option>
+          <option value="it_news">IT行业新闻</option>
+        </select>
+      </div>
+      <div id="wechatPreviewUrl" style="display:none;background:#f3e8ff;border:1px solid #c4b5fd;border-radius:0.375rem;padding:0.75rem;margin-bottom:1rem;font-size:0.8rem;word-break:break-all;">
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem">
+        <button class="btn" style="background:#7c3aed;color:white" onclick="saveWechatFeed()">添加公众号</button>
+        <button class="btn" style="background:#6b7280;color:white" onclick="closeAllModals()">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 添加/编辑RSS源弹窗 -->
   <div id="addModal" class="modal">
     <div class="modal-content">
-      <h3 id="modalTitle">添加RSS源</h3>
+      <h3 id="modalTitle">📡 添加RSS源</h3>
       <div class="form-group">
-        <label>名称</label>
-        <input type="text" id="feedName" placeholder="例如：量子位">
+        <label>名称 <span style="color:red">*</span></label>
+        <input type="text" id="feedName" placeholder="例如：OpenAI Blog">
       </div>
       <div class="form-group">
-        <label>RSS链接</label>
-        <input type="url" id="feedUrl" placeholder="https://...">
+        <label>RSS链接 <span style="color:red">*</span></label>
+        <input type="url" id="feedUrl" placeholder="https://example.com/feed.xml">
       </div>
       <div class="form-group">
         <label>分类</label>
@@ -457,7 +506,7 @@
       </div>
       <div style="display:flex;gap:1rem;margin-top:1.5rem">
         <button class="btn btn-primary" onclick="saveFeed()">保存</button>
-        <button class="btn" style="background:#6b7280;color:white" onclick="closeModal()">取消</button>
+        <button class="btn" style="background:#6b7280;color:white" onclick="closeAllModals()">取消</button>
       </div>
     </div>
   </div>
@@ -487,86 +536,86 @@
     let currentCategory = 'all'; // 当前选中的分类
     let allFeeds = []; // 存储所有RSS源数据
 
+    // 判断是否为微信公众号源
+    function isWechatFeed(feed) {
+      return feed.url && feed.url.includes('/feed/MP_WXS_');
+    }
+
     // Tab切换
     function switchAdminTab(category) {
       currentCategory = category;
-      
-      // 更新Tab按钮状态
+
       document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-        if (btn.dataset.category === category) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
+        btn.classList.toggle('active', btn.dataset.category === category);
       });
-      
-      // 更新标题
+
       const titles = {
-        'all': '全部RSS源列表',
-        'ai_news': '聚焦AI行业 RSS源列表',
-        'it_news': 'IT行业新闻 RSS源列表'
+        'all': '全部订阅源列表',
+        'wechat': '微信公众号列表',
+        'rss': 'RSS订阅源列表',
+        'ai_news': 'AI行业订阅源列表',
+        'it_news': 'IT行业订阅源列表'
       };
-      document.getElementById('currentTabTitle').textContent = titles[category];
-      
-      // 重新渲染列表
+      document.getElementById('currentTabTitle').textContent = titles[category] || '订阅源列表';
+
       renderFeedList();
     }
-    
+
     // 渲染RSS源列表（根据当前分类筛选）
     function renderFeedList() {
-      const categoryNames = {
-        'ai_news': '聚焦AI行业',
-        'it_news': 'IT行业新闻'
-      };
-      
-      const categoryColors = {
-        'ai_news': '#3b82f6',
-        'it_news': '#10b981'
-      };
-      
-      // 筛选数据
+      const categoryNames = { 'ai_news': 'AI行业', 'it_news': 'IT行业' };
+      const categoryColors = { 'ai_news': '#3b82f6', 'it_news': '#10b981' };
+
       let filteredFeeds = allFeeds;
-      if (currentCategory !== 'all') {
-        filteredFeeds = allFeeds.filter(feed => feed.category === currentCategory);
+      if (currentCategory === 'wechat') {
+        filteredFeeds = allFeeds.filter(f => isWechatFeed(f));
+      } else if (currentCategory === 'rss') {
+        filteredFeeds = allFeeds.filter(f => !isWechatFeed(f));
+      } else if (currentCategory !== 'all') {
+        filteredFeeds = allFeeds.filter(f => f.category === currentCategory);
       }
-      
-      const html = filteredFeeds.map((feed, index) => `
-        <div class="feed-item" id="item-${feed.id}">
-          <input type="checkbox" class="feed-checkbox" data-id="${feed.id}" onchange="updateBulkToolbar()">
-          <div class="feed-info">
-            <h3>
-              <span style="display:inline-block;background:#6b7280;color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;margin-right:0.5rem;font-size:0.875rem;">
-                #${index + 1}
-              </span>
-              ${feed.name}
-            </h3>
-            <p style="font-size:0.875rem;color:#6b7280;margin-top:0.25rem">${feed.url}</p>
-            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-              <span style="font-size:0.75rem;background:${categoryColors[feed.category || 'ai_news']};color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;">
-                🏷️ ${categoryNames[feed.category || 'ai_news']}
-              </span>
-              <span style="font-size:0.75rem;color:${feed.enabled?'#10b981':'#ef4444'}">
-                ${feed.enabled ? '✅ 已启用' : '❌ 已禁用'}
-              </span>
+
+      const html = filteredFeeds.map((feed, index) => {
+        const isWx = isWechatFeed(feed);
+        const typeTag = isWx
+          ? '<span style="font-size:0.75rem;background:#7c3aed;color:white;padding:0.2rem 0.5rem;border-radius:0.25rem;">💬 微信公众号</span>'
+          : '<span style="font-size:0.75rem;background:#0369a1;color:white;padding:0.2rem 0.5rem;border-radius:0.25rem;">📡 RSS</span>';
+        return `
+          <div class="feed-item" id="item-${feed.id}">
+            <input type="checkbox" class="feed-checkbox" data-id="${feed.id}" onchange="updateBulkToolbar()">
+            <div class="feed-info">
+              <h3>
+                <span style="display:inline-block;background:#6b7280;color:white;padding:0.25rem 0.5rem;border-radius:0.25rem;margin-right:0.5rem;font-size:0.875rem;">
+                  #${index + 1}
+                </span>
+                ${feed.name}
+              </h3>
+              <p style="font-size:0.8rem;color:#9ca3af;margin-top:0.25rem;word-break:break-all">${feed.url}</p>
+              <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+                ${typeTag}
+                <span style="font-size:0.75rem;background:${categoryColors[feed.category || 'ai_news']};color:white;padding:0.2rem 0.5rem;border-radius:0.25rem;">
+                  ${categoryNames[feed.category || 'ai_news']}
+                </span>
+                <span style="font-size:0.75rem;color:${feed.enabled?'#10b981':'#ef4444'}">
+                  ${feed.enabled ? '✅ 已启用' : '❌ 已禁用'}
+                </span>
+              </div>
+            </div>
+            <div class="feed-actions">
+              <button class="btn btn-primary" onclick="editFeed('${feed.id}')">编辑</button>
+              <button class="btn ${feed.enabled?'':'btn-success'}" onclick="toggleFeed('${feed.id}', ${!feed.enabled})">
+                ${feed.enabled ? '禁用' : '启用'}
+              </button>
+              <button class="btn btn-danger" onclick="deleteFeed('${feed.id}')">删除</button>
             </div>
           </div>
-          <div class="feed-actions">
-            <button class="btn btn-primary" onclick="editFeed('${feed.id}')">编辑</button>
-            <button class="btn ${feed.enabled?'':'btn-success'}" onclick="toggleFeed('${feed.id}', ${!feed.enabled})">
-              ${feed.enabled ? '禁用' : '启用'}
-            </button>
-            <button class="btn btn-danger" onclick="deleteFeed('${feed.id}')">删除</button>
-          </div>
-        </div>
-      `).join('');
-      
+        `;
+      }).join('');
+
       document.getElementById('feedList').innerHTML = html || `
-        <p style="text-align:center;color:#6b7280;padding:3rem;">
-          ${currentCategory === 'all' ? '暂无RSS源' : `暂无${categoryNames[currentCategory]}RSS源`}
-        </p>
+        <p style="text-align:center;color:#6b7280;padding:3rem;">暂无订阅源</p>
       `;
 
-      // 更新计数和批量工具栏
       updateCounts();
       updateBulkToolbar();
     }
@@ -596,7 +645,7 @@
       let success = 0;
       for (const id of ids) {
         try {
-          const res = await fetch(`/api/admin/feeds/${id}`, {
+          const res = await fetch(`api/admin/feeds/${id}`, {
             method: 'DELETE',
             headers: {'X-Admin-Password': currentPassword}
           });
@@ -610,19 +659,17 @@
     
     // 更新各分类的计数
     function updateCounts() {
-      const countAll = allFeeds.length;
-      const countAI = allFeeds.filter(f => f.category === 'ai_news').length;
-      const countIT = allFeeds.filter(f => f.category === 'it_news').length;
-      
-      document.getElementById('countAll').textContent = countAll;
-      document.getElementById('countAI').textContent = countAI;
-      document.getElementById('countIT').textContent = countIT;
+      document.getElementById('countAll').textContent = allFeeds.length;
+      document.getElementById('countWechat').textContent = allFeeds.filter(f => isWechatFeed(f)).length;
+      document.getElementById('countRss').textContent = allFeeds.filter(f => !isWechatFeed(f)).length;
+      document.getElementById('countAI').textContent = allFeeds.filter(f => f.category === 'ai_news').length;
+      document.getElementById('countIT').textContent = allFeeds.filter(f => f.category === 'it_news').length;
     }
 
     // 登录
     async function login() {
       const password = document.getElementById('passwordInput').value;
-      const res = await fetch('/api/admin/verify', {
+      const res = await fetch('api/admin/verify', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({password})
@@ -648,7 +695,7 @@
 
     // 加载RSS源列表
     async function loadFeeds() {
-      const res = await fetch('/api/admin/feeds', {
+      const res = await fetch('api/admin/feeds', {
         headers: {'X-Admin-Password': currentPassword}
       });
       const data = await res.json();
@@ -660,10 +707,69 @@
       renderFeedList();
     }
 
-    // 显示添加弹窗
-    function showAddModal() {
+    // we-mp-rss 基础 URL
+    const WE_MP_RSS_BASE = 'http://127.0.0.1:8080';
+
+    function closeAllModals() {
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    }
+
+    // 显示微信公众号添加弹窗
+    function showWechatAddModal() {
+      document.getElementById('wechatName').value = '';
+      document.getElementById('wechatId').value = '';
+      document.getElementById('wechatCategory').value = 'ai_news';
+      document.getElementById('wechatPreviewUrl').style.display = 'none';
+      document.getElementById('wechatAddModal').classList.add('active');
+
+      // 实时预览URL
+      document.getElementById('wechatId').oninput = function() {
+        const id = this.value.trim();
+        const preview = document.getElementById('wechatPreviewUrl');
+        if (id) {
+          const wxId = id.startsWith('MP_WXS_') ? id : 'MP_WXS_' + id;
+          preview.textContent = WE_MP_RSS_BASE + '/feed/' + wxId + '.rss';
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
+        }
+      };
+    }
+
+    // 保存微信公众号
+    async function saveWechatFeed() {
+      const name = document.getElementById('wechatName').value.trim();
+      let wxId = document.getElementById('wechatId').value.trim();
+      const category = document.getElementById('wechatCategory').value;
+
+      if (!name) { alert('请输入公众号名称'); return; }
+      if (!wxId) { alert('请输入微信公众号ID'); return; }
+
+      // 自动补全前缀
+      if (!wxId.startsWith('MP_WXS_')) wxId = 'MP_WXS_' + wxId;
+
+      const url = WE_MP_RSS_BASE + '/feed/' + wxId + '.rss';
+
+      const res = await fetch('api/admin/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': currentPassword },
+        body: JSON.stringify({ name, url, category })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        closeAllModals();
+        loadFeeds();
+        alert('微信公众号添加成功：' + name);
+      } else {
+        alert('添加失败：' + (data.error || '未知错误'));
+      }
+    }
+
+    // 显示RSS源添加弹窗
+    function showRssAddModal() {
       editingFeedId = null;
-      document.getElementById('modalTitle').textContent = '添加RSS源';
+      document.getElementById('modalTitle').textContent = '📡 添加RSS源';
       document.getElementById('feedName').value = '';
       document.getElementById('feedUrl').value = '';
       document.getElementById('feedCategory').value = 'ai_news';
@@ -672,7 +778,7 @@
 
     // 编辑RSS源
     async function editFeed(id) {
-      const res = await fetch('/api/admin/feeds', {
+      const res = await fetch('api/admin/feeds', {
         headers: {'X-Admin-Password': currentPassword}
       });
       const data = await res.json();
@@ -727,7 +833,7 @@
 
     // 切换启用状态
     async function toggleFeed(id, enabled) {
-      const res = await fetch(`/api/admin/feeds/${id}`, {
+      const res = await fetch(`api/admin/feeds/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -746,7 +852,7 @@
     async function deleteFeed(id) {
       if (!confirm('确定要删除这个RSS源吗？')) return;
       
-      const res = await fetch(`/api/admin/feeds/${id}`, {
+      const res = await fetch(`api/admin/feeds/${id}`, {
         method: 'DELETE',
         headers: {'X-Admin-Password': currentPassword}
       });
@@ -760,7 +866,7 @@
 
     // 关闭弹窗
     function closeModal() {
-      document.getElementById('addModal').classList.remove('active');
+      closeAllModals();
     }
 
     // 显示修改密码弹窗
@@ -790,7 +896,7 @@
         return;
       }
       
-      const res = await fetch('/api/admin/change-password', {
+      const res = await fetch('api/admin/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -821,7 +927,7 @@
       btn.disabled = true;
       btn.textContent = '⏳ 正在生成...';
       try {
-        const res = await fetch('/api/admin/export-template', {
+        const res = await fetch('api/admin/export-template', {
           headers: { 'X-Admin-Password': currentPassword }
         });
         if (!res.ok) {
@@ -988,7 +1094,7 @@
         commitment: true
       };
       try {
-        const res = await fetch('/api/admin/export', {
+        const res = await fetch('api/admin/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Admin-Password': currentPassword },
           body: JSON.stringify(body)
@@ -1020,7 +1126,7 @@
       const container = document.getElementById('exportLogTable');
       container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem">加载中...</p>';
       try {
-        const res = await fetch('/api/admin/export-logs', { headers: {'X-Admin-Password': currentPassword} });
+        const res = await fetch('api/admin/export-logs', { headers: {'X-Admin-Password': currentPassword} });
         const data = await res.json();
         if (!data.success || !data.logs.length) {
           container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:2rem">暂无导出记录</p>';
@@ -1074,7 +1180,7 @@
         return;
       }
       
-      const res = await fetch('/api/admin/update-sources', {
+      const res = await fetch('api/admin/update-sources', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

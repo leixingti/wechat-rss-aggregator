@@ -251,7 +251,7 @@ async function loadArticlesByCategory(category) {
 
   try {
     // 使用原有的API，加载所有文章
-    const response = await fetch(`/api/articles?page=1&limit=1000`);
+    const response = await fetch(`api/articles?page=1&limit=1000`);
     
     if (!response.ok) {
       throw new Error('加载失败');
@@ -423,7 +423,7 @@ async function loadConferences() {
   hideError();
 
   try {
-    const response = await fetch('/api/conferences');
+    const response = await fetch('api/conferences');
     
     if (!response.ok) {
       throw new Error('加载会议失败');
@@ -543,7 +543,7 @@ function formatConferenceDate(date) {
 
 async function downloadCalendar(conferenceId) {
   try {
-    const response = await fetch(`/api/conferences/${conferenceId}/calendar`);
+    const response = await fetch(`api/conferences/${conferenceId}/calendar`);
     const blob = await response.blob();
     
     const url = window.URL.createObjectURL(blob);
@@ -567,39 +567,28 @@ async function downloadCalendar(conferenceId) {
 
 async function loadStats() {
   try {
-    const response = await fetch('/api/articles?limit=1000');
-    const data = await response.json();
-    
+    // 在浏览器本地时区计算日界限，传给后端按全表统计（避免 limit 截断导致“更早”等数字偏小）
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    let todayCount = 0;
-    let yesterdayCount = 0;
-    let weekCount = 0;
-    let olderCount = 0;
-    
-    data.articles.forEach(article => {
-      const pubDate = new Date(article.pubDate);
-      if (pubDate >= today) {
-        todayCount++;
-      } else if (pubDate >= yesterday) {
-        yesterdayCount++;
-      } else if (pubDate >= weekAgo) {
-        weekCount++;
-      } else {
-        olderCount++;
-      }
+
+    const params = new URLSearchParams({
+      today: today.toISOString(),
+      yesterday: yesterday.toISOString(),
+      weekAgo: weekAgo.toISOString()
     });
-    
-    document.getElementById('totalArticles').textContent = data.pagination.total || 0;
-    document.getElementById('todayCount').textContent = todayCount;
-    document.getElementById('yesterdayCount').textContent = yesterdayCount;
-    document.getElementById('weekCount').textContent = weekCount;
-    document.getElementById('olderCount').textContent = olderCount;
+
+    const response = await fetch(`api/stats?${params}`);
+    const data = await response.json();
+
+    document.getElementById('totalArticles').textContent = data.total || 0;
+    document.getElementById('todayCount').textContent = data.today || 0;
+    document.getElementById('yesterdayCount').textContent = data.yesterday || 0;
+    document.getElementById('weekCount').textContent = data.week || 0;
+    document.getElementById('olderCount').textContent = data.older || 0;
   } catch (err) {
     console.error('加载统计失败:', err);
   }
@@ -623,7 +612,7 @@ async function handleRefresh() {
   refreshBtn.textContent = '刷新中...';
   
   try {
-    const response = await fetch('/api/fetch', { method: 'POST' });
+    const response = await fetch('api/fetch', { method: 'POST' });
     const data = await response.json();
     
     if (data.success) {
@@ -770,7 +759,7 @@ async function openArticleSummary(articleId, url, category) {
 
   // 请求摘要
   try {
-    const resp = await fetch(`/api/articles/${articleId}/summary`);
+    const resp = await fetch(`api/articles/${articleId}/summary`);
     const data = await resp.json();
     if (data.summary) {
       document.getElementById('summaryBody').innerHTML =
