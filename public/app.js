@@ -369,11 +369,9 @@ function displayArticlesGrouped(articles, targetGrid, targetPagination) {
 }
 
 function generateArticleCard(article) {
-  const category = article.category || 'ai_news';
   const safeLink = escapeHtml(article.link);
-  const safeCategory = escapeHtml(category);
   return `
-    <article class="article-card" onclick="openArticleSummary(${article.id}, '${safeLink}', '${safeCategory}')">
+    <article class="article-card" onclick="openArticle('${safeLink}')">
       ${article.imageUrl ? `
         <img src="${escapeHtml(article.imageUrl)}" 
              alt="${escapeHtml(article.title)}" 
