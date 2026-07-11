@@ -805,9 +805,9 @@
         return;
       }
       
-      const endpoint = editingFeedId 
-        ? `/api/admin/feeds/${editingFeedId}`
-        : '/api/admin/feeds';
+      const endpoint = editingFeedId
+        ? `api/admin/feeds/${editingFeedId}`
+        : 'api/admin/feeds';
       
       const method = editingFeedId ? 'PUT' : 'POST';
       
@@ -1027,7 +1027,7 @@
       const category = document.getElementById('expCategory').value;
       const startDate = document.getElementById('expStartDate').value;
       const endDate = document.getElementById('expEndDate').value;
-      let url = '/api/admin/export-preview?category=' + encodeURIComponent(category);
+      let url = 'api/admin/export-preview?category=' + encodeURIComponent(category);
       if (startDate) url += '&startDate=' + startDate;
       if (endDate) url += '&endDate=' + endDate;
       try {
