@@ -8,7 +8,7 @@ const fs = require('fs');
 const db = require('./database');
 const { fetchArticles } = require('./fetcher');
 const rssManager = require('./rss-manager');
-const { generateQianwenSummary, translateArticleToChinese } = require('./qianwen');
+const { generateArticleSummary, translateArticleToChinese } = require('./llm');
 const { runDailyAIFocusCuration } = require('./ai-curator');
 
 // 环境变量配置
@@ -244,7 +244,7 @@ app.get('/api/articles/:id', (req, res) => {
   });
 });
 
-// API: 获取或生成文章 AI 摘要（通义千问，支持缓存）
+// API: 获取或生成文章 AI 摘要（DeepSeek，支持缓存）
 app.get('/api/articles/:id/summary', (req, res) => {
   const { id } = req.params;
 
@@ -261,9 +261,9 @@ app.get('/api/articles/:id/summary', (req, res) => {
       return res.json({ summary: article.ai_summary, cached: true });
     }
 
-    // 调用通义千问生成摘要
+    // 调用DeepSeek生成摘要
     try {
-      const summary = await generateQianwenSummary(article);
+      const summary = await generateArticleSummary(article);
       // 写入数据库缓存（异步，不等待）
       db.run('UPDATE articles SET ai_summary = ? WHERE id = ?', [summary, id], (updateErr) => {
         if (updateErr) {

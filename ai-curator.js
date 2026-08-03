@@ -1,5 +1,5 @@
-const https = require('https');
 const db = require('./database');
+const { callLLM } = require('./llm');
 
 const CANDIDATE_WINDOW_HOURS = 24;
 const MAX_PER_SOURCE = 4;
@@ -73,9 +73,6 @@ function buildCandidateListText(candidates) {
 }
 
 async function rankAndSelect(candidates) {
-  const apiKey = process.env.DASHSCOPE_API_KEY;
-  if (!apiKey) throw new Error('缺少 DASHSCOPE_API_KEY 环境变量');
-
   const systemPrompt = `你是全球AI行业资讯编辑。下面是过去24小时内抓取到的AI相关新闻候选列表，可能包含很多来源报道同一件事的重复新闻。请你：
 1. 识别报道同一事件的不同来源，只保留其中最具代表性、信息最完整的一条；
 2. 对去重后的新闻按全球重要性从高到低排序；
@@ -84,54 +81,11 @@ async function rankAndSelect(candidates) {
 {"selected": [编号1, 编号2, ...]}
 编号必须是候选列表里的序号（从1开始），按重要性从高到低排列，最多${TOP_N}个。`;
 
-  const requestBody = JSON.stringify({
-    model: 'qwen-turbo-latest',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: buildCandidateListText(candidates) }
-    ],
+  const content = await callLLM({
+    system: systemPrompt,
+    user: buildCandidateListText(candidates),
     temperature: 0.2,
-    max_tokens: 800
-  });
-
-  const content = await new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        hostname: 'dashscope.aliyuncs.com',
-        path: '/compatible-mode/v1/chat/completions',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Length': Buffer.byteLength(requestBody)
-        },
-        timeout: 60000
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.error) {
-              return reject(new Error(`通义千问API错误: ${json.error.message || JSON.stringify(json.error)}`));
-            }
-            const text = json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
-            if (!text) return reject(new Error('通义千问返回空结果'));
-            resolve(text);
-          } catch (e) {
-            reject(new Error(`解析API响应失败: ${e.message}`));
-          }
-        });
-      }
-    );
-    req.on('error', (e) => reject(new Error(`请求失败: ${e.message}`)));
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('请求超时（60秒）'));
-    });
-    req.write(requestBody);
-    req.end();
+    maxTokens: 800
   });
 
   const stripped = content.replace(/```json/gi, '').replace(/```/g, '');
