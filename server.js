@@ -8,7 +8,7 @@ const fs = require('fs');
 const db = require('./database');
 const { fetchArticles } = require('./fetcher');
 const rssManager = require('./rss-manager');
-const { generateQianwenSummary } = require('./qianwen');
+const { generateQianwenSummary, translateArticleToChinese } = require('./qianwen');
 const { runDailyAIFocusCuration } = require('./ai-curator');
 
 // 环境变量配置
@@ -274,6 +274,43 @@ app.get('/api/articles/:id/summary', (req, res) => {
     } catch (e) {
       log.error(`摘要生成失败 id=${id}:`, e);
       res.status(500).json({ error: `摘要生成失败: ${e.message}` });
+    }
+  });
+});
+
+// API: 获取或生成文章中文翻译（英文来源文章点击弹窗展示，支持缓存）
+app.get('/api/articles/:id/translate', (req, res) => {
+  const { id } = req.params;
+
+  db.get('SELECT * FROM articles WHERE id = ?', [id], async (err, article) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!article) {
+      return res.status(404).json({ error: '文章不存在' });
+    }
+
+    if (article.translated_title || article.translated_content) {
+      return res.json({
+        translatedTitle: article.translated_title,
+        translatedContent: article.translated_content,
+        cached: true
+      });
+    }
+
+    try {
+      const { title, content } = await translateArticleToChinese(article);
+      db.run(
+        'UPDATE articles SET translated_title = ?, translated_content = ? WHERE id = ?',
+        [title, content, id],
+        (updateErr) => {
+          if (updateErr) log.warn(`缓存翻译写入失败 id=${id}: ${updateErr.message}`);
+        }
+      );
+      res.json({ translatedTitle: title, translatedContent: content, cached: false });
+    } catch (e) {
+      log.error(`翻译失败 id=${id}:`, e);
+      res.status(500).json({ error: `翻译失败: ${e.message}` });
     }
   });
 });

@@ -177,7 +177,9 @@ function addFeaturedColumns() {
     const toAdd = [
       { name: 'is_featured', ddl: 'ALTER TABLE articles ADD COLUMN is_featured INTEGER DEFAULT 0' },
       { name: 'featured_rank', ddl: 'ALTER TABLE articles ADD COLUMN featured_rank INTEGER' },
-      { name: 'featured_date', ddl: 'ALTER TABLE articles ADD COLUMN featured_date TEXT' }
+      { name: 'featured_date', ddl: 'ALTER TABLE articles ADD COLUMN featured_date TEXT' },
+      { name: 'translated_title', ddl: 'ALTER TABLE articles ADD COLUMN translated_title TEXT' },
+      { name: 'translated_content', ddl: 'ALTER TABLE articles ADD COLUMN translated_content TEXT' }
     ].filter(col => !existingCols.has(col.name));
 
     if (toAdd.length === 0) {

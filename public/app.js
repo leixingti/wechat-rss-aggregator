@@ -372,10 +372,24 @@ function displayArticlesGrouped(articles, targetGrid, targetPagination) {
   }, targetPagination);
 }
 
+// 粗略判断标题是否主要为英文（跟服务端 fetcher.js 的 isMainlyEnglish 逻辑一致）
+function isMainlyEnglishTitle(text) {
+  if (!text) return false;
+  const clean = text.replace(/[^a-zA-Z一-鿿]/g, '');
+  if (clean.length === 0) return false;
+  const englishChars = clean.replace(/[^a-zA-Z]/g, '').length;
+  return englishChars / clean.length > 0.5;
+}
+
 function generateArticleCard(article) {
   const safeLink = escapeHtml(article.link);
+  // AI聚焦tab里，英文来源的文章点击后弹窗看中文翻译；中文来源直接跳转原文
+  const isEnglishInAiFocus = currentTab === 'ai_news' && isMainlyEnglishTitle(article.title);
+  const onclickAttr = isEnglishInAiFocus
+    ? `openArticleTranslation(${article.id}, '${safeLink}')`
+    : `openArticle('${safeLink}')`;
   return `
-    <article class="article-card" onclick="openArticle('${safeLink}')">
+    <article class="article-card" onclick="${onclickAttr}">
       ${article.imageUrl ? `
         <img src="${escapeHtml(article.imageUrl)}" 
              alt="${escapeHtml(article.title)}" 
@@ -769,6 +783,47 @@ async function openArticleSummary(articleId, url, category) {
     } else {
       document.getElementById('summaryBody').innerHTML =
         `<p class="summary-error">摘要生成失败：${escapeHtml(data.error || '未知错误')}</p>`;
+    }
+  } catch (e) {
+    document.getElementById('summaryBody').innerHTML =
+      `<p class="summary-error">网络错误，请直接阅读原文。</p>`;
+  }
+}
+
+// AI聚焦tab里英文来源文章的点击处理：弹窗展示中文翻译，而不是跳转原文
+async function openArticleTranslation(articleId, url) {
+  const article = allArticles.find(a => a.id === articleId);
+
+  document.getElementById('summaryTitle').textContent = article ? article.title : '';
+  document.getElementById('summarySource').textContent = article ? article.source : '';
+  document.getElementById('summaryDate').textContent = article ? formatDate(article.pubDate) : '';
+  document.getElementById('summaryOriginalLink').href = url;
+
+  document.getElementById('summaryBody').innerHTML = `
+    <div class="summary-loading">
+      <div class="summary-spinner"></div>
+      <span>AI 正在翻译...</span>
+    </div>`;
+
+  const modal = document.getElementById('summaryModal');
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const resp = await fetch(`api/articles/${articleId}/translate`);
+    const data = await resp.json();
+    if (data.translatedTitle || data.translatedContent) {
+      document.getElementById('summaryTitle').textContent = data.translatedTitle || (article ? article.title : '');
+      const paragraphs = (data.translatedContent || '')
+        .split(/\n{2,}/)
+        .map(p => p.trim())
+        .filter(Boolean);
+      document.getElementById('summaryBody').innerHTML = paragraphs.length
+        ? paragraphs.map(p => `<p class="summary-text">${escapeHtml(p)}</p>`).join('')
+        : `<p class="summary-error">翻译内容为空，请直接阅读原文。</p>`;
+    } else {
+      document.getElementById('summaryBody').innerHTML =
+        `<p class="summary-error">翻译失败：${escapeHtml(data.error || '未知错误')}</p>`;
     }
   } catch (e) {
     document.getElementById('summaryBody').innerHTML =

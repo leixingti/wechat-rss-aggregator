@@ -2,9 +2,9 @@ const https = require('https');
 const db = require('./database');
 
 const CANDIDATE_WINDOW_HOURS = 24;
-const MAX_PER_SOURCE = 8;
+const MAX_PER_SOURCE = 4;
 const MAX_CANDIDATES = 200;
-const TOP_N = 50;
+const TOP_N = 20;
 
 function dbAll(sql, params = []) {
   return new Promise((resolve, reject) => {
