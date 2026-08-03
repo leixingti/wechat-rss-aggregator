@@ -158,9 +158,56 @@ function addCategoryColumn() {
     }
 
     if (pendingAlters === 0) {
-      // 所有字段已存在，检查是否需要恢复备份
-      checkAndRestoreBackup();
+      // 所有字段已存在，直接添加AI精选字段
+      addFeaturedColumns();
     }
+  });
+}
+
+// 为已存在的数据库添加AI每日精选相关字段（is_featured/featured_rank/featured_date）
+function addFeaturedColumns() {
+  db.all("PRAGMA table_info(articles)", (err, rows) => {
+    if (err) {
+      console.error('❌ 检查表结构失败:', err.message);
+      checkAndRestoreBackup();
+      return;
+    }
+
+    const existingCols = new Set(rows.map(row => row.name));
+    const toAdd = [
+      { name: 'is_featured', ddl: 'ALTER TABLE articles ADD COLUMN is_featured INTEGER DEFAULT 0' },
+      { name: 'featured_rank', ddl: 'ALTER TABLE articles ADD COLUMN featured_rank INTEGER' },
+      { name: 'featured_date', ddl: 'ALTER TABLE articles ADD COLUMN featured_date TEXT' }
+    ].filter(col => !existingCols.has(col.name));
+
+    if (toAdd.length === 0) {
+      createFeaturedIndexes();
+      return;
+    }
+
+    let pending = toAdd.length;
+    toAdd.forEach(col => {
+      console.log(`🔄 添加${col.name}字段...`);
+      db.run(col.ddl, (err) => {
+        if (err) {
+          console.error(`❌ 添加${col.name}字段失败:`, err.message);
+        } else {
+          console.log(`✅ ${col.name}字段已添加`);
+        }
+        if (--pending === 0) createFeaturedIndexes();
+      });
+    });
+  });
+}
+
+// AI精选相关索引（纯新增，加速每日精选任务的候选查询和AI聚焦tab查询）
+function createFeaturedIndexes() {
+  db.run('CREATE INDEX IF NOT EXISTS idx_articles_featured ON articles(is_featured, featured_rank)', (err) => {
+    if (err) console.error('❌ 创建idx_articles_featured索引失败:', err.message);
+  });
+  db.run('CREATE INDEX IF NOT EXISTS idx_articles_category_created ON articles(category, createdAt)', (err) => {
+    if (err) console.error('❌ 创建idx_articles_category_created索引失败:', err.message);
+    checkAndRestoreBackup();
   });
 }
 

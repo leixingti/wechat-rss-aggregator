@@ -250,31 +250,35 @@ async function loadArticlesByCategory(category) {
   hideError();
 
   try {
-    // 使用原有的API，加载所有文章
-    const response = await fetch(`api/articles?page=1&limit=1000`);
-    
-    if (!response.ok) {
-      throw new Error('加载失败');
+    if (category === 'ai_news') {
+      // AI聚焦：每日10点精选的当日最多50条，直接用专用接口，不再走"最新1000条前端过滤"
+      const response = await fetch(`api/articles/ai-focus`);
+      if (!response.ok) {
+        throw new Error('加载失败');
+      }
+      const data = await response.json();
+      allArticles = data.articles;
+    } else {
+      // 使用原有的API，加载所有文章
+      const response = await fetch(`api/articles?page=1&limit=1000`);
+
+      if (!response.ok) {
+        throw new Error('加载失败');
+      }
+
+      const data = await response.json();
+
+      if (category === 'it_news') {
+        allArticles = data.articles.filter(article => (article.category || 'ai_news') === category);
+      } else {
+        // conferences板块不需要筛选
+        allArticles = data.articles;
+      }
     }
 
-    const data = await response.json();
-    
-    // 在前端按分类筛选
-    if (category === 'ai_news' || category === 'it_news') {
-      allArticles = data.articles.filter(article => {
-        // 如果文章有category字段，按category筛选
-        // 如果没有category字段，默认归为ai_news
-        const articleCategory = article.category || 'ai_news';
-        return articleCategory === category;
-      });
-    } else {
-      // conferences板块不需要筛选
-      allArticles = data.articles;
-    }
-    
     const targetGrid = category === 'ai_news' ? articlesGrid : itArticlesGrid;
     const targetPagination = category === 'ai_news' ? pagination : itPagination;
-    
+
     displayArticlesGrouped(allArticles, targetGrid, targetPagination);
   } catch (err) {
     showError('加载文章失败，请稍后重试');

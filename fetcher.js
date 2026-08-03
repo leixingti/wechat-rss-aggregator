@@ -68,38 +68,49 @@ async function translateToChinese(title, description) {
   });
 }
 
-// AI 相关关键词（用于 it_news 来源的文章自动分类）
+// AI 相关关键词（用于逐篇文章内容判别）
 const AI_KEYWORDS = [
   'AI', 'A.I.', '人工智能', '机器学习', '深度学习', '大模型', '大语言模型',
   'LLM', 'GPT', 'ChatGPT', 'Claude', 'Gemini', 'Llama', 'Mistral',
   '神经网络', '自然语言处理', 'NLP', '计算机视觉', 'CV', '强化学习',
   'OpenAI', 'Anthropic', 'DeepMind', 'Google AI', 'Meta AI', 'Hugging Face',
-  '智谱', '文心', '通义', '混元', '星火', '豆包', 'Kimi', '月之暗面',
+  '智谱', '文心', '通义', 'Qwen', '混元', '星火', '豆包', 'Kimi', '月之暗面',
+  'DeepSeek', 'MiniMax', '零一万物', '元宝', 'WAIC', '世界人工智能大会',
   'AGI', 'AIGC', '生成式', '扩散模型', 'Transformer', '向量', 'embedding',
   '算法', '训练', '推理', '微调', 'fine-tune', 'RAG', '智能体', 'Agent',
   '语言模型', '视觉模型', '多模态', 'stable diffusion', 'midjourney',
   '机器人', '自动驾驶', '无人驾驶', '具身智能'
 ];
 
-const AI_KEYWORDS_LOWER = AI_KEYWORDS.map(k => k.toLowerCase());
+// 这几个词太短，纯子串匹配在英文文本里会大量误命中（如 'AI' 命中 contain/maintain/remain），
+// 改用单词边界正则匹配；其余关键词足够specific，保持子串匹配
+const WORD_BOUNDARY_KEYWORDS = ['AI', 'A.I.', 'CV', 'NLP', 'RAG'];
+const SUBSTRING_KEYWORDS_LOWER = AI_KEYWORDS
+  .filter(k => !WORD_BOUNDARY_KEYWORDS.includes(k))
+  .map(k => k.toLowerCase());
+const WORD_BOUNDARY_REGEXES = WORD_BOUNDARY_KEYWORDS.map(
+  k => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+);
 
 /**
  * 判断文章是否属于 AI 相关内容
  */
 function isAIRelated(title, description) {
-  const text = ((title || '') + ' ' + (description || '')).toLowerCase();
-  return AI_KEYWORDS_LOWER.some(kw => text.includes(kw));
+  const text = `${title || ''} ${description || ''}`;
+  const lower = text.toLowerCase();
+  if (SUBSTRING_KEYWORDS_LOWER.some(kw => lower.includes(kw))) return true;
+  return WORD_BOUNDARY_REGEXES.some(re => re.test(text));
 }
 
 /**
- * 根据来源分类和文章内容确定最终分类
- * it_news 来源中的 AI 相关文章自动归入 ai_news
+ * 根据文章内容确定最终分类（逐篇判别，不再依赖源的预设分类）
+ * weibo/twitter 动态保持原分类不变
  */
 function resolveCategory(feedCategory, title, description) {
-  if (feedCategory === 'it_news' && isAIRelated(title, description)) {
-    return 'ai_news';
+  if (feedCategory === 'weibo') {
+    return feedCategory;
   }
-  return feedCategory || 'ai_news';
+  return isAIRelated(title, description) ? 'ai_news' : 'it_news';
 }
 
 const parser = new Parser({

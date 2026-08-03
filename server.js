@@ -9,6 +9,7 @@ const db = require('./database');
 const { fetchArticles } = require('./fetcher');
 const rssManager = require('./rss-manager');
 const { generateQianwenSummary } = require('./qianwen');
+const { runDailyAIFocusCuration } = require('./ai-curator');
 
 // 环境变量配置
 require('dotenv').config();
@@ -215,6 +216,19 @@ app.get('/api/stats', (req, res) => {
       invalidDates: invalidCount
     });
   });
+});
+
+// 获取"AI聚焦"当日精选文章（每日10点由定时任务生成，最多50条，按重要性排序）
+// 必须定义在 /api/articles/:id 之前，否则会被 :id 路由拦截（"ai-focus"当作id处理）
+app.get('/api/articles/ai-focus', (req, res) => {
+  db.all(
+    'SELECT * FROM articles WHERE is_featured = 1 ORDER BY featured_rank ASC',
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ success: false, error: err.message });
+      res.json({ success: true, articles: rows });
+    }
+  );
 });
 
 // API: 获取单篇文章
@@ -482,6 +496,37 @@ app.get('/api/admin/export-logs', authMiddleware, (req, res) => {
 });
 
 // ========================================
+// AI 每日精选
+// ========================================
+
+// 手动触发AI聚焦精选（和每日10点定时任务逻辑完全一致：先抓取一次再精选），方便验证
+app.post('/api/admin/curate-ai-focus', authMiddleware, async (req, res) => {
+  try {
+    await fetchArticles();
+    const result = await runDailyAIFocusCuration();
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 一次性历史积压清理：把24小时窗口之外、仍挂着ai_news但未被精选标记的存量文章下放到it_news
+app.post('/api/admin/backfill-reclassify', authMiddleware, (req, res) => {
+  db.run(
+    `UPDATE articles
+     SET category = 'it_news'
+     WHERE category = 'ai_news'
+       AND is_featured = 0
+       AND datetime(createdAt) < datetime('now', '-24 hours')`,
+    [],
+    function (err) {
+      if (err) return res.status(500).json({ success: false, error: err.message });
+      res.json({ success: true, updatedCount: this.changes });
+    }
+  );
+});
+
+// ========================================
 // 会议 API
 // ========================================
 const { getAllConferences, getUpcomingConferences, generateICS } = require('./conferences');
@@ -578,7 +623,19 @@ cron.schedule('*/15 * * * *', async () => {
   } catch (error) {
     console.error('❌ 定时抓取失败:', error);
   }
-});
+}, { timezone: 'Asia/Shanghai' });
+
+// 定时任务：每天10点做一次AI聚焦精选（先强制抓取一次保证候选池新鲜，再去重+排序选出最重要的最多50条）
+cron.schedule('0 10 * * *', async () => {
+  console.log('⏰ AI聚焦每日精选任务触发 -', new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }));
+  try {
+    await fetchArticles();
+    const result = await runDailyAIFocusCuration();
+    console.log('✅ AI聚焦精选完成', result);
+  } catch (error) {
+    console.error('❌ AI聚焦精选失败:', error);
+  }
+}, { timezone: 'Asia/Shanghai' });
 
 // 启动服务器
 server.listen(PORT, HOST, () => {
