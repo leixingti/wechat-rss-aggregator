@@ -37,23 +37,23 @@
   <section class="stats-section">
     <div class="container">
       <div class="stats-grid-horizontal">
-        <div class="stat-card">
+        <div class="stat-card" id="statCardAll" onclick="setDateRange('all')">
           <div class="stat-label">文章总数</div>
           <div class="stat-value" id="totalArticles">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="statCardToday" onclick="setDateRange('today')">
           <div class="stat-label">今天</div>
           <div class="stat-value" id="todayCount">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="statCardYesterday" onclick="setDateRange('yesterday')">
           <div class="stat-label">昨天</div>
           <div class="stat-value" id="yesterdayCount">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="statCardWeek" onclick="setDateRange('week')">
           <div class="stat-label">本周</div>
           <div class="stat-value" id="weekCount">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="statCardOlder" onclick="setDateRange('older')">
           <div class="stat-label">更早</div>
           <div class="stat-value" id="olderCount">0</div>
         </div>

@@ -5,7 +5,8 @@
 let currentTab = 'ai_news'; // 当前激活的Tab
 let currentPage = 1;
 let currentSearch = '';
-const ARTICLES_PER_PAGE = 100;
+let currentDateRange = 'today'; // IT行业tab的日期筛选：today/yesterday/week/older/all
+const ARTICLES_PER_PAGE = 50;
 let allArticles = [];
 let allConferences = [];
 let ws = null; // WebSocket连接
@@ -201,7 +202,11 @@ async function handleRefreshNew() {
 function switchTab(tab) {
   currentTab = tab;
   currentPage = 1;
-  
+  if (tab === 'it_news') {
+    currentDateRange = 'today'; // 默认展示当天文章
+  }
+  updateStatCardActiveState();
+
   // 更新Tab按钮状态
   tabBtns.forEach(btn => {
     if (btn.dataset.tab === tab) {
@@ -262,7 +267,19 @@ async function loadArticlesByCategory(category) {
       allArticles = data.articles;
     } else if (category === 'it_news') {
       // 服务端按分类分页，避免"只拉最新1000条再前端过滤"导致历史文章随着抓取量增长被挤出窗口而消失
-      const response = await fetch(`api/articles/by-category?category=it_news&page=${currentPage}&limit=${ARTICLES_PER_PAGE}`);
+      const boundaries = getDateBoundaries();
+      const params = new URLSearchParams({
+        category: 'it_news',
+        page: currentPage,
+        limit: ARTICLES_PER_PAGE,
+        today: boundaries.today.toISOString(),
+        yesterday: boundaries.yesterday.toISOString(),
+        weekAgo: boundaries.weekAgo.toISOString()
+      });
+      if (currentDateRange !== 'all') {
+        params.set('range', currentDateRange);
+      }
+      const response = await fetch(`api/articles/by-category?${params}`);
       if (!response.ok) {
         throw new Error('加载失败');
       }
@@ -281,8 +298,10 @@ async function loadArticlesByCategory(category) {
 
     const targetGrid = category === 'ai_news' ? articlesGrid : itArticlesGrid;
     const targetPagination = category === 'ai_news' ? pagination : itPagination;
+    const rangeLabels = { today: '今天', yesterday: '昨天', week: '本周', older: '更早' };
+    const rangeLabel = category === 'it_news' ? rangeLabels[currentDateRange] : undefined;
 
-    displayArticlesGrouped(allArticles, targetGrid, targetPagination, serverPagination);
+    displayArticlesGrouped(allArticles, targetGrid, targetPagination, serverPagination, rangeLabel);
   } catch (err) {
     showError('加载文章失败，请稍后重试');
     console.error('加载错误:', err);
@@ -294,17 +313,33 @@ async function loadArticlesByCategory(category) {
 // 显示文章列表（按日期分组+分页）
 // serverPagination: 若传入(服务端已按分类分页)，articles就是当前页的全部内容，不再做客户端整体切片，
 // 分页控件直接用服务端返回的 page/total/totalPages
-function displayArticlesGrouped(articles, targetGrid, targetPagination, serverPagination) {
+// rangeLabel: 若传入(服务端已按today/yesterday/week/older过滤好)，直接整批渲染成一个分组，不再重新分组
+function displayArticlesGrouped(articles, targetGrid, targetPagination, serverPagination, rangeLabel) {
   if (articles.length === 0) {
     targetGrid.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
         <p style="font-size: 1.125rem; color: var(--text-secondary);">
-          ${currentSearch ? '😔 没有找到匹配的文章' : '📭 暂无文章'}
+          ${currentSearch ? '😔 没有找到匹配的文章' : (rangeLabel ? `📭 ${rangeLabel}暂无文章` : '📭 暂无文章')}
         </p>
         ${currentTab === 'it_news' ? '<p style="margin-top: 1rem; color: var(--text-secondary);">请在后台添加IT行业RSS源</p>' : ''}
       </div>
     `;
     targetPagination.innerHTML = '';
+    return;
+  }
+
+  if (rangeLabel) {
+    // 服务端已经按日期范围过滤+分页好了，直接整批渲染成一个分组
+    let html = `
+      <div style="grid-column: 1/-1;">
+        <h2 class="section-title">${rangeLabel}</h2>
+      </div>
+    `;
+    articles.forEach(article => {
+      html += generateArticleCard(article);
+    });
+    targetGrid.innerHTML = html;
+    displayPagination(serverPagination, targetPagination);
     return;
   }
 
@@ -603,20 +638,24 @@ async function downloadCalendar(conferenceId) {
 // 加载统计信息
 // ========================================
 
+// 浏览器本地时区的日界限，传给后端统计/筛选接口保持口径一致
+function getDateBoundaries() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  return { today, yesterday, weekAgo };
+}
+
 async function loadStats() {
   try {
-    // 在浏览器本地时区计算日界限，传给后端按全表统计（避免 limit 截断导致“更早”等数字偏小）
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
+    const boundaries = getDateBoundaries();
     const params = new URLSearchParams({
-      today: today.toISOString(),
-      yesterday: yesterday.toISOString(),
-      weekAgo: weekAgo.toISOString()
+      today: boundaries.today.toISOString(),
+      yesterday: boundaries.yesterday.toISOString(),
+      weekAgo: boundaries.weekAgo.toISOString()
     });
 
     const response = await fetch(`api/stats?${params}`);
@@ -627,8 +666,41 @@ async function loadStats() {
     document.getElementById('yesterdayCount').textContent = data.yesterday || 0;
     document.getElementById('weekCount').textContent = data.week || 0;
     document.getElementById('olderCount').textContent = data.older || 0;
+
+    updateStatCardActiveState();
   } catch (err) {
     console.error('加载统计失败:', err);
+  }
+}
+
+// 点击统计卡片：切换到IT行业tab（如果不在）并按对应日期范围筛选
+function setDateRange(range) {
+  currentDateRange = range;
+  currentPage = 1;
+  updateStatCardActiveState();
+  if (currentTab !== 'it_news') {
+    switchTab('it_news');
+  } else {
+    loadContent('it_news');
+  }
+}
+
+function updateStatCardActiveState() {
+  const idByRange = {
+    all: 'statCardAll',
+    today: 'statCardToday',
+    yesterday: 'statCardYesterday',
+    week: 'statCardWeek',
+    older: 'statCardOlder'
+  };
+  Object.values(idByRange).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  // 只有在IT行业tab时高亮当前筛选状态，其它tab下这组卡片只是全站统计展示
+  if (currentTab === 'it_news') {
+    const activeEl = document.getElementById(idByRange[currentDateRange]);
+    if (activeEl) activeEl.classList.add('active');
   }
 }
 

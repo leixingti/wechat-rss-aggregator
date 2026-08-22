@@ -231,11 +231,86 @@ app.get('/api/articles/ai-focus', (req, res) => {
   );
 });
 
-// 获取文章列表（支持分类筛选，服务端分页）
+// 解析日界限；缺省时回退到服务器本地时间（跟 /api/stats 保持一致口径）
+function parseDateBoundaries(query) {
+  const parseBoundary = (v, fallback) => {
+    const d = v ? new Date(v) : null;
+    return d && !isNaN(d.getTime()) ? d : fallback;
+  };
+  const now = new Date();
+  const defToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const defYesterday = new Date(defToday); defYesterday.setDate(defYesterday.getDate() - 1);
+  const defWeekAgo = new Date(defToday); defWeekAgo.setDate(defWeekAgo.getDate() - 7);
+  return {
+    today: parseBoundary(query.today, defToday),
+    yesterday: parseBoundary(query.yesterday, defYesterday),
+    weekAgo: parseBoundary(query.weekAgo, defWeekAgo)
+  };
+}
+
+// 按 pubDate 归入 today/yesterday/week/older（跟 /api/stats 用同一套规则，无法解析的pubDate归入"更早"）
+function classifyDateRange(pubDate, boundaries) {
+  const d = new Date(pubDate);
+  if (isNaN(d.getTime())) return 'older';
+  if (d >= boundaries.today) return 'today';
+  if (d >= boundaries.yesterday) return 'yesterday';
+  if (d >= boundaries.weekAgo) return 'week';
+  return 'older';
+}
+
+// 获取文章列表（支持分类筛选 + 可选按今天/昨天/本周/更早过滤，服务端分页）
 // 必须定义在 /api/articles/:id 之前，否则会被 :id 路由拦截（"by-category"当作id处理）
 app.get('/api/articles/by-category', (req, res) => {
-  const { category, page = 1, limit = 100 } = req.query;
+  const { category, page = 1, limit = 100, range } = req.query;
   const offset = (page - 1) * limit;
+
+  if (range && ['today', 'yesterday', 'week', 'older'].includes(range)) {
+    // pubDate 格式在各个源之间不统一，SQL端不可靠，改成先轻量拉 id+pubDate 在JS里分类（跟 /api/stats 同一套逻辑保证口径一致），
+    // 再按分类结果分页取全量字段，避免像"最新1000条"那样把范围之外的文章直接拉黑。
+    const boundaries = parseDateBoundaries(req.query);
+    const lightQuery = category && category !== 'all'
+      ? 'SELECT id, pubDate FROM articles WHERE category = ?'
+      : 'SELECT id, pubDate FROM articles';
+    const lightParams = category && category !== 'all' ? [category] : [];
+
+    db.all(lightQuery, lightParams, (err, rows) => {
+      if (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+
+      const matched = rows
+        .filter(r => classifyDateRange(r.pubDate, boundaries) === range)
+        .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+      const total = matched.length;
+      const totalPages = Math.ceil(total / limit) || 1;
+      const pageIds = matched.slice(offset, offset + parseInt(limit)).map(r => r.id);
+
+      if (pageIds.length === 0) {
+        return res.json({
+          success: true,
+          articles: [],
+          pagination: { page: parseInt(page), limit: parseInt(limit), total, totalPages }
+        });
+      }
+
+      const placeholders = pageIds.map(() => '?').join(',');
+      db.all(`SELECT * FROM articles WHERE id IN (${placeholders})`, pageIds, (err, fullRows) => {
+        if (err) {
+          return res.status(500).json({ success: false, error: err.message });
+        }
+        const byId = new Map(fullRows.map(r => [r.id, r]));
+        const orderedRows = pageIds.map(id => byId.get(id)).filter(Boolean);
+
+        res.json({
+          success: true,
+          articles: orderedRows,
+          pagination: { page: parseInt(page), limit: parseInt(limit), total, totalPages }
+        });
+      });
+    });
+    return;
+  }
 
   let query = 'SELECT * FROM articles';
   let countQuery = 'SELECT COUNT(*) as total FROM articles';
