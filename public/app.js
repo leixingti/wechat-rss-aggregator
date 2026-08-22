@@ -250,6 +250,8 @@ async function loadArticlesByCategory(category) {
   hideError();
 
   try {
+    let serverPagination = null;
+
     if (category === 'ai_news') {
       // AI聚焦：每日10点精选的当日最多50条，直接用专用接口，不再走"最新1000条前端过滤"
       const response = await fetch(`api/articles/ai-focus`);
@@ -258,28 +260,29 @@ async function loadArticlesByCategory(category) {
       }
       const data = await response.json();
       allArticles = data.articles;
-    } else {
-      // 使用原有的API，加载所有文章
-      const response = await fetch(`api/articles?page=1&limit=1000`);
-
+    } else if (category === 'it_news') {
+      // 服务端按分类分页，避免"只拉最新1000条再前端过滤"导致历史文章随着抓取量增长被挤出窗口而消失
+      const response = await fetch(`api/articles/by-category?category=it_news&page=${currentPage}&limit=${ARTICLES_PER_PAGE}`);
       if (!response.ok) {
         throw new Error('加载失败');
       }
-
       const data = await response.json();
-
-      if (category === 'it_news') {
-        allArticles = data.articles.filter(article => (article.category || 'ai_news') === category);
-      } else {
-        // conferences板块不需要筛选
-        allArticles = data.articles;
+      allArticles = data.articles;
+      serverPagination = data.pagination;
+    } else {
+      // conferences板块不需要筛选
+      const response = await fetch(`api/articles?page=1&limit=1000`);
+      if (!response.ok) {
+        throw new Error('加载失败');
       }
+      const data = await response.json();
+      allArticles = data.articles;
     }
 
     const targetGrid = category === 'ai_news' ? articlesGrid : itArticlesGrid;
     const targetPagination = category === 'ai_news' ? pagination : itPagination;
 
-    displayArticlesGrouped(allArticles, targetGrid, targetPagination);
+    displayArticlesGrouped(allArticles, targetGrid, targetPagination, serverPagination);
   } catch (err) {
     showError('加载文章失败，请稍后重试');
     console.error('加载错误:', err);
@@ -289,7 +292,9 @@ async function loadArticlesByCategory(category) {
 }
 
 // 显示文章列表（按日期分组+分页）
-function displayArticlesGrouped(articles, targetGrid, targetPagination) {
+// serverPagination: 若传入(服务端已按分类分页)，articles就是当前页的全部内容，不再做客户端整体切片，
+// 分页控件直接用服务端返回的 page/total/totalPages
+function displayArticlesGrouped(articles, targetGrid, targetPagination, serverPagination) {
   if (articles.length === 0) {
     targetGrid.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
@@ -331,40 +336,57 @@ function displayArticlesGrouped(articles, targetGrid, targetPagination) {
     }
   });
 
-  // 计算分页
-  const start = (currentPage - 1) * ARTICLES_PER_PAGE;
-  const end = start + ARTICLES_PER_PAGE;
-  
   // 生成HTML
   let html = '';
-  let articleCount = 0;
-  
-  ['today', 'yesterday', 'week', 'older'].forEach(groupKey => {
-    const group = groups[groupKey];
-    if (group.articles.length > 0) {
-      const groupStart = Math.max(0, start - articleCount);
-      const groupEnd = Math.max(0, end - articleCount);
-      
-      if (groupStart < group.articles.length) {
+
+  if (serverPagination) {
+    // 服务端已经分好页，articles就是当前页要展示的全部内容，按分组原样渲染，不再切片
+    ['today', 'yesterday', 'week', 'older'].forEach(groupKey => {
+      const group = groups[groupKey];
+      if (group.articles.length > 0) {
         html += `
           <div style="grid-column: 1/-1;">
             <h2 class="section-title">${group.title}</h2>
           </div>
         `;
-        
-        const groupArticles = group.articles.slice(groupStart, groupEnd);
-        groupArticles.forEach(article => {
+        group.articles.forEach(article => {
           html += generateArticleCard(article);
         });
       }
-      
-      articleCount += group.articles.length;
-    }
-  });
+    });
+  } else {
+    // 客户端整体切片（AI聚焦tab用，总量本来就只有20条左右，用不到分页）
+    const start = (currentPage - 1) * ARTICLES_PER_PAGE;
+    const end = start + ARTICLES_PER_PAGE;
+    let articleCount = 0;
+
+    ['today', 'yesterday', 'week', 'older'].forEach(groupKey => {
+      const group = groups[groupKey];
+      if (group.articles.length > 0) {
+        const groupStart = Math.max(0, start - articleCount);
+        const groupEnd = Math.max(0, end - articleCount);
+
+        if (groupStart < group.articles.length) {
+          html += `
+            <div style="grid-column: 1/-1;">
+              <h2 class="section-title">${group.title}</h2>
+            </div>
+          `;
+
+          const groupArticles = group.articles.slice(groupStart, groupEnd);
+          groupArticles.forEach(article => {
+            html += generateArticleCard(article);
+          });
+        }
+
+        articleCount += group.articles.length;
+      }
+    });
+  }
 
   targetGrid.innerHTML = html;
-  
-  displayPagination({
+
+  displayPagination(serverPagination || {
     page: currentPage,
     limit: ARTICLES_PER_PAGE,
     total: articles.length,

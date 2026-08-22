@@ -231,6 +231,49 @@ app.get('/api/articles/ai-focus', (req, res) => {
   );
 });
 
+// 获取文章列表（支持分类筛选，服务端分页）
+// 必须定义在 /api/articles/:id 之前，否则会被 :id 路由拦截（"by-category"当作id处理）
+app.get('/api/articles/by-category', (req, res) => {
+  const { category, page = 1, limit = 100 } = req.query;
+  const offset = (page - 1) * limit;
+
+  let query = 'SELECT * FROM articles';
+  let countQuery = 'SELECT COUNT(*) as total FROM articles';
+  const params = [];
+
+  if (category && category !== 'all') {
+    query += ' WHERE category = ?';
+    countQuery += ' WHERE category = ?';
+    params.push(category);
+  }
+
+  query += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(limit), offset);
+
+  db.get(countQuery, category ? [category] : [], (err, countResult) => {
+    if (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        return res.status(500).json({ success: false, error: err.message });
+      }
+
+      res.json({
+        success: true,
+        articles: rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: countResult.total,
+          totalPages: Math.ceil(countResult.total / limit)
+        }
+      });
+    });
+  });
+});
+
 // API: 获取单篇文章
 app.get('/api/articles/:id', (req, res) => {
   db.get('SELECT * FROM articles WHERE id = ?', [req.params.id], (err, row) => {
@@ -596,54 +639,6 @@ app.get('/api/conferences/:id/calendar', (req, res) => {
   res.setHeader('Content-Type', 'text/calendar');
   res.setHeader('Content-Disposition', `attachment; filename="${conference.id}.ics"`);
   res.send(icsContent);
-});
-
-// ========================================
-// 文章按分类获取 API
-// ========================================
-
-// 获取文章列表（支持分类筛选）
-app.get('/api/articles/by-category', (req, res) => {
-  const { category, page = 1, limit = 100 } = req.query;
-  const offset = (page - 1) * limit;
-  
-  let query = 'SELECT * FROM articles';
-  let countQuery = 'SELECT COUNT(*) as total FROM articles';
-  const params = [];
-  
-  if (category && category !== 'all') {
-    query += ' WHERE category = ?';
-    countQuery += ' WHERE category = ?';
-    params.push(category);
-  }
-  
-  query += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), offset);
-  
-  // 获取总数
-  db.get(countQuery, category ? [category] : [], (err, countResult) => {
-    if (err) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
-    
-    // 获取文章列表
-    db.all(query, params, (err, rows) => {
-      if (err) {
-        return res.status(500).json({ success: false, error: err.message });
-      }
-      
-      res.json({
-        success: true,
-        articles: rows,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: countResult.total,
-          totalPages: Math.ceil(countResult.total / limit)
-        }
-      });
-    });
-  });
 });
 
 // 服务前端页面
