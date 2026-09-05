@@ -36,13 +36,19 @@ function isAIRelated(title, description) {
   return WORD_BOUNDARY_REGEXES.some(re => re.test(text));
 }
 
+// 这些源即使文章提到AI关键词，也强制归入IT新闻、不进AI精选候选池
+const FORCE_IT_NEWS_SOURCES = ['IT之家(官网)', '爱范儿'];
+
 /**
  * 根据文章内容确定最终分类（逐篇判别，不再依赖源的预设分类）
- * weibo/twitter 动态保持原分类不变
+ * weibo/twitter 动态保持原分类不变；FORCE_IT_NEWS_SOURCES 里的源始终归入IT新闻
  */
-function resolveCategory(feedCategory, title, description) {
+function resolveCategory(feedCategory, feedName, title, description) {
   if (feedCategory === 'weibo') {
     return feedCategory;
+  }
+  if (FORCE_IT_NEWS_SOURCES.includes(feedName)) {
+    return 'it_news';
   }
   return isAIRelated(title, description) ? 'ai_news' : 'it_news';
 }
@@ -102,7 +108,7 @@ async function fetchFromFeed(feed) {
               item.pubDate || new Date().toISOString(),
               item.creator || item.author || '未知作者',
               feed.name,
-              resolveCategory(feed.category, item.title, item.contentSnippet || item.description),
+              resolveCategory(feed.category, feed.name, item.title, item.contentSnippet || item.description),
               imageUrl
             ],
             function(err) {
